@@ -10,10 +10,11 @@ homepage: "https://github.com/username/reponame"
 doc: "https://url/to/documentation"
 bug-reports: "https://github.com/username/reponame/issues"
 depends: [
-  "dune" {>= "3.20"}
+  "dune" {>= "3.21"}
   "ocaml"
   "ocamllex"
   "menhir"
+  "ppx_deriving"
   "odoc" {with-doc}
 ]
 build: [

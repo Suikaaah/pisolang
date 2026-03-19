@@ -1,149 +1,201 @@
 %{
-  open Types
+  open Surface.MStr
+
+  let rec nat_of_int_pat n =
+    if n = 0 then PatCtor "Z"
+             else PatApp ("S", nat_of_int_pat (n - 1))
+
+  let rec nat_of_int_epat n =
+    if n = 0 then EPatCtor "Z"
+             else EPatCtorApp ("S", nat_of_int_epat (n - 1))
+
+  let rec nat_of_int_term n =
+    if n = 0 then TermCtor "Z"
+             else TermCtorApp ("S", nat_of_int_term (n - 1))
+
+  let rec list_of_ps ps =
+    let folder p acc = PatApp ("Cons", PatTuple (List2.of_list [p; acc])) in
+    List1.fold_right folder ps (PatCtor "Nil")
+
+  let rec list_of_eps eps =
+    let folder ep acc = EPatCtorApp ("Cons", EPatTuple (List2.of_list [ep; acc])) in
+    List1.fold_right folder eps (EPatCtor "Nil")
+
+  let rec list_of_terms terms =
+    let folder t acc = TermCtorApp ("Cons", TermTuple (List2.of_list [t; acc])) in
+    List1.fold_right folder terms (TermCtor "Nil")
+
+  let rec lambdas_of_params = function
+    | [] -> fun omega -> omega
+    | psi :: tl -> fun omega -> IsoFun (psi, lambdas_of_params tl omega)
 %}
 
-%token EOF LPAREN RPAREN LBRACE RBRACE LBRACKET RBRACKET TIMES PIPE COMMA SEMICOLON CONS
-       ARROW BIARROW EQUAL UNIT LET IN ISO FIX TYPE INVERT REC OF FUN CASE MATCH WITH
+%token EOF LPAREN RPAREN LBRACKET RBRACKET TIMES PIPE COMMA SEMICOLON CONS
+       ARROW BIARROW EQUAL UNIT LET IN FIX TYPE INV REC OF FUN CASE MATCH WITH
 %token <int> NAT
-%token <string> TVAR VAR CTOR
+%token <string> TICKED LOWER UPPER
 
 %start <program> program
 %type <typedef> typedef
-%type <base_type> base_type_grouped base_type
+%type <base> base_grouped base
 %type <variant> variant
-%type <value> value_grouped value_almost value
-%type <expr_intermediate> expr_intermediate
+%type <pat> pat_grouped pat_almost pat
+%type <epat> epat_grouped epat_almost epat
 %type <expr> expr
-%type <value * expr> biarrowed
+%type <pat * expr> branch
 %type <iso> iso_grouped iso_almost iso
-%type <term> term_grouped term_almost term term_nonlet
+%type <term> term_grouped term_almost term
 %%
 
-wtf(separator, X):
+list1_impl(separator, X):
+  | x = X; { [x] }
+  | x = X; separator; xs = list1_impl(separator, X); { x :: xs }
+
+list1(separator, X):
+  | l = list1_impl(separator, X); { List1.of_list l }
+
+list2_impl(separator, X):
   | x = X; separator; y = X; { [x; y] }
-  | x = X; separator; xs = wtf(separator, X); { x :: xs }
+  | x = X; separator; xs = list2_impl(separator, X); { x :: xs }
+
+list2(separator, X):
+  | l = list2_impl(separator, X); { List2.of_list l }
 
 program:
-  | ts = typedef*; t = term; EOF; { { ts; t } }
+  | ts = typedef*; SEMICOLON; SEMICOLON; t = term; EOF; { (ts, t) }
 
 typedef:
-  | TYPE; t = VAR; EQUAL; PIPE?; vs = separated_nonempty_list(PIPE, variant);
-    { { vars = []; t; vs } }
+  | TYPE; name = LOWER; EQUAL; PIPE?; variants = list1(PIPE, variant);
+    { { params = []; name; variants = List1.to_list variants } }
 
-  | TYPE; var = TVAR; t = VAR; EQUAL; PIPE?; vs = separated_nonempty_list(PIPE, variant);
-    { { vars = [var]; t; vs } }
+  | TYPE; param = TICKED; name = LOWER; EQUAL; PIPE?; variants = list1(PIPE, variant);
+    { { params = [param]; name; variants = List1.to_list variants } }
 
-  | TYPE; LPAREN; vars = wtf(COMMA, TVAR); RPAREN; t = VAR; EQUAL; PIPE?; vs = separated_nonempty_list(PIPE, variant);
-    { { vars; t; vs } }
+  | TYPE; LPAREN; params = list2(COMMA, TICKED); RPAREN; name = LOWER;
+    EQUAL; PIPE?; variants = list1(PIPE, variant);
+    { { params = List2.to_list params; name; variants = List1.to_list variants } }
 
-base_type_grouped:
-  | LPAREN; t = base_type; RPAREN; { t }
-  | UNIT; { Unit }
-  | x = VAR; { Named x }
-  | x = TVAR; { Var x }
-  | t = base_type_grouped; a = VAR; { Ctor ([t], a) }
-  | LPAREN; ts = wtf(COMMA, base_type); RPAREN; a = VAR; { Ctor (ts, a) }
+base_grouped:
+  | LPAREN; a = base; RPAREN; { a }
+  | UNIT; { BaseUnit }
+  | x = LOWER; { BaseIdent x }
+  | v = TICKED; { BaseVar v }
+  | a = base_grouped; x = LOWER; { BaseApp (List1.of_list [a], x) }
+  | LPAREN; aa = list2(COMMA, base); RPAREN; x = LOWER; { BaseApp (List2.to_list1 aa, x) }
 
-base_type:
-  | ts = wtf(TIMES, base_type_grouped); { Product ts }
-  | t = base_type_grouped; { t }
+base:
+  | a = base_grouped; { a }
+  | l = list2(TIMES, base_grouped); { BaseProd l }
 
 variant:
-  | c = CTOR; OF; a = base_type; { Iso { c; a } }
-  | c = CTOR; { Value c }
+  | c = UPPER; OF; a = base; { (c, Some a)}
+  | c = UPPER; { (c, None) }
 
-value_grouped:
-  | LPAREN; v = value; RPAREN; { v }
-  | LPAREN; RPAREN; { Unit }
-  | LPAREN; vs = wtf(COMMA, value); RPAREN; { Tuple vs }
-  | x = VAR; { Var x }
-  | x = CTOR; { Ctor x }
-  | n = NAT; { nat_of_int n }
-  | LBRACKET; RBRACKET; { Ctor "Nil" }
-  | LBRACKET; vs = separated_nonempty_list(SEMICOLON, value); RBRACKET;
-    {
-      let f value acc : value = Cted { c = "Cons"; v = Tuple [value; acc] } in
-      List.fold_right f vs (Ctor "Nil")
-    }
+pat_grouped:
+  | LPAREN; p = pat; RPAREN; { p }
+  | LPAREN; RPAREN; { PatUnit }
+  | LPAREN; l = list2(COMMA, pat); RPAREN; { PatTuple l }
+  | x = LOWER; { PatVar x }
+  | c = UPPER; { PatCtor c }
+  | n = NAT; { nat_of_int_pat n }
+  | LBRACKET; RBRACKET; { PatCtor "Nil" }
+  | LBRACKET; ps = list1(SEMICOLON, pat); RBRACKET; { list_of_ps ps }
 
-value_almost:
-  | v = value_grouped; { v }
-  | c = CTOR; v = value_grouped; { let lmao : value = Cted { c ; v } in lmao }
+pat_almost:
+  | p = pat_grouped; { p }
+  | c = UPPER; p = pat_grouped; { PatApp (c, p) }
 
-value:
-  | v = value_almost; { v }
-  | v_1 = value_almost; CONS; v_2 = value; { Cted { c = "Cons"; v = Tuple [v_1; v_2] } }
+pat:
+  | p = pat_almost; { p }
+  | p_1 = pat_almost; CONS; p_2 = pat; { PatApp ("Cons", PatTuple (List2.of_list [p_1; p_2])) }
 
-expr_intermediate:
-  | t = term_nonlet; { IValue t }
-  | LET; p_1 = value; EQUAL; p_2 = term_nonlet; IN; e = expr_intermediate; { ILet { p_1; p_2; e } }
-  | LET; p_1 = value; EQUAL; MATCH; p_2 = term_nonlet; WITH;
-    PIPE?; p = separated_nonempty_list(PIPE, biarrowed); IN; e = expr_intermediate;
-    { ILet { p_1; p_2 = App { omega = Pairs p; t = p_2 }; e } }
+epat_grouped:
+  | LPAREN; ep = epat; RPAREN; { ep }
+  | LPAREN; RPAREN; { EPatUnit }
+  | LPAREN; l = list2(COMMA, epat); RPAREN; { EPatTuple l }
+  | x = LOWER; { EPatVar x }
+  | c = UPPER; { EPatCtor c }
+  | n = NAT; { nat_of_int_epat n }
+  | LBRACKET; RBRACKET; { EPatCtor "Nil" }
+  | LBRACKET; eps = list1(SEMICOLON, epat); RBRACKET; { list_of_eps eps }
+
+epat_almost:
+  | ep = epat_grouped; { ep }
+  | c = UPPER; ep = epat_grouped; { EPatCtorApp (c, ep) }
+  | omega = iso_almost; ep = epat_grouped;  { EPatIsoApp (omega, ep) }
+
+epat:
+  | ep = epat_almost; { ep }
+  | ep_1 = epat_almost; CONS; ep_2 = epat;
+    { EPatCtorApp ("Cons", EPatTuple (List2.of_list [ep_1; ep_2])) }
 
 expr:
-  | e = expr_intermediate;
-    {
-      let gen = new_generator () in
-      expand_expr gen e |> Result.error_to_failure
-    }
+  | ep = epat; { ExprEPat ep }
 
-biarrowed:
-  | v = value; BIARROW; e = expr; { (v, e) }
+  | LET; p = pat; EQUAL; ep = epat; IN; e = expr;
+  | LPAREN; LET; p = pat; EQUAL; ep = epat; IN; e = expr; RPAREN;
+    { ExprLet { p; ep; e } }
+
+  | LET; p = pat; EQUAL; MATCH; ep = epat; WITH;
+    PIPE?; l = list1(PIPE, branch); IN; e = expr;
+  | LET; p = pat; EQUAL; LPAREN; MATCH; ep = epat; WITH;
+    PIPE?; l = list1(PIPE, branch); RPAREN; IN; e = expr;
+    { ExprLet { p; ep = EPatIsoApp (IsoCase l, ep); e } }
+
+  | LPAREN; LET; p = pat; EQUAL; MATCH; ep = epat; WITH;
+    PIPE?; l = list1(PIPE, branch); IN; e = expr; RPAREN;
+  | LPAREN; LET; p = pat; EQUAL; LPAREN; MATCH; ep = epat; WITH;
+    PIPE?; l = list1(PIPE, branch); RPAREN; IN; e = expr; RPAREN;
+    { ExprLet { p; ep = EPatIsoApp (IsoCase l, ep); e } }
+
+  | LPAREN; MATCH; ep = epat; WITH; PIPE?; l = list1(PIPE, branch); RPAREN;
+    { ExprEPat (EPatIsoApp (IsoCase l, ep)) }
+
+branch:
+  | p = pat; BIARROW; e = expr; { (p, e) }
 
 iso_grouped:
-  | LBRACE; omega = iso; RBRACE; { omega }
-  | x = VAR; { let lmao : iso = Var x in lmao }
+  | LPAREN; omega = iso; RPAREN; { omega }
+  | phi = TICKED; { IsoVar phi }
 
 iso_almost:
   | omega = iso_grouped; { omega }
-  | INVERT; omega = iso_grouped; { Invert omega }
-  | omega_1 = iso_almost; omega_2 = iso_grouped; { App { omega_1; omega_2 } }
+  | INV; omega = iso_grouped; { IsoInv omega }
+  | omega_1 = iso_almost; omega_2 = iso_grouped; { IsoApp (omega_1, omega_2) }
 
 iso:
   | omega = iso_almost; { omega }
-  | CASE; PIPE?; p = separated_nonempty_list(PIPE, biarrowed); { Pairs p }
-  | FIX; phi = VAR; ARROW; omega = iso; { Fix { phi; omega } }
-  | FUN; params = VAR+; ARROW; omega = iso; { lambdas_of_params params omega }
+  | CASE; PIPE?; l = list1(PIPE, branch); { IsoCase l }
+  | FIX; phi = TICKED; ARROW; omega = iso; { IsoFix (phi, omega) }
+  | FUN; params = TICKED+; ARROW; omega = iso; { lambdas_of_params params omega }
 
 term_grouped:
   | LPAREN; t = term; RPAREN; { t }
-  | LPAREN; RPAREN; { Unit }
-  | LPAREN; ts = wtf(COMMA, term); RPAREN; { Tuple ts }
-  | x = VAR; { Var x }
-  | x = CTOR; { Ctor x }
-  | n = NAT; { nat_of_int n |> term_of_value }
-  | LBRACKET; RBRACKET; { Ctor "Nil" }
-  | LBRACKET; ts = separated_nonempty_list(SEMICOLON, term); RBRACKET;
-    {
-      let f t acc = Cted { c = "Cons"; t = Tuple [t; acc] } in
-      List.fold_right f ts (Ctor "Nil")
-    }
+  | LPAREN; RPAREN; { TermUnit }
+  | LPAREN; l = list2(COMMA, term); RPAREN; { TermTuple l }
+  | x = LOWER; { TermVar x }
+  | c = UPPER; { TermCtor c }
+  | n = NAT; { nat_of_int_term n }
+  | LBRACKET; RBRACKET; { TermCtor "Nil" }
+  | LBRACKET; l = list1(SEMICOLON, term); RBRACKET; { list_of_terms l }
 
 term_almost:
   | t = term_grouped; { t }
-  | c = CTOR; t = term_grouped; { Cted { c; t } }
-  | omega = iso_almost; t = term_grouped; { App { omega; t } }
+  | c = UPPER; t = term_grouped; { TermCtorApp (c, t) }
+  | omega = iso_almost; t = term_grouped; { TermIsoApp (omega, t) }
 
 term:
   | t = term_almost; { t }
-  | t_1 = term_almost; CONS; t_2 = term; { Cted { c = "Cons"; t = Tuple [t_1; t_2] } }
-  | LET; p = value; EQUAL; t_1 = term; IN; t_2 = term; { Let { p; t_1; t_2 } }
-  | ISO; phi = VAR; params = VAR*; EQUAL; omega = iso; IN; t = term;
-    { LetIso { phi; omega = lambdas_of_params params omega; t } }
+  | t_1 = term_almost; CONS; t_2 = term;
+    { TermCtorApp ("Cons", TermTuple (List2.of_list [t_1; t_2])) }
 
-  | MATCH; t = term; WITH; PIPE?; p = separated_nonempty_list(PIPE, biarrowed);
-    { App { omega = Pairs p; t } }
+  | LET; p = pat; EQUAL; t_1 = term; IN; t_2 = term; { TermLet { p; t_1; t_2 } }
+  | LET; phi = TICKED; params = TICKED*; EQUAL; omega = iso; IN; t = term;
+    { TermIso { phi; omega = lambdas_of_params params omega; t } }
 
-  | ISO; REC; phi = VAR; params = VAR*; EQUAL; omega = iso; IN; t = term;
+  | MATCH; t = term; WITH; PIPE?; l = list1(PIPE, branch); { TermIsoApp (IsoCase l, t) }
+  | LET; REC; phi = TICKED; params = TICKED*; EQUAL; omega = iso; IN; t = term;
     {
       let omega = lambdas_of_params params omega in
-      LetIso { phi; omega = Fix { phi; omega }; t }
+      TermIso { phi; omega = IsoFix (phi, omega); t }
     }
-
-term_nonlet:
-  | t = term_almost; { t }
-  | t_1 = term_almost; CONS; t_2 = term_nonlet; { Cted { c = "Cons"; t = Tuple [t_1; t_2] } }
-  | MATCH; t = term_nonlet; WITH; PIPE?; p = separated_nonempty_list(PIPE, biarrowed);
-    { App { omega = Pairs p; t } }
-

@@ -1,9 +1,11 @@
 (ocamllex lexer)
 
 (menhir
- (modules parser))
+  (modules parser)
+  (explain true))
 
 (executable
- (public_name iso2)
- (name iso2)
- (libraries iso2))
+ (public_name pisolang)
+ (name main)
+ (libraries pisolang)
+ (preprocess (pps ppx_deriving.show)))

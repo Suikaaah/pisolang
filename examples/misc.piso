@@ -1,0 +1,29 @@
+type nat             = Z (* 0 *) | S (* n *) of nat
+type 'a list         = Nil (* [] *) | Cons (* :: *) of 'a * 'a list
+type bool            = False | True
+type 'a option       = None | Some of 'a
+type ('l, 'r) either = Left of 'l | Right of 'r
+;;
+
+let 'option_map 'f = case
+| None   <-> None
+| Some x <-> Some ('f x)
+in
+
+let 'if 'then 'else = case
+| (True, x)  <-> (True, 'then x)
+| (False, x) <-> (False, 'else x)
+in
+
+let 'compose 'g 'f = case x <-> 'g ('f x) in
+
+let 'invl 'r 'i = 'compose (inv 'r) ('compose 'i 'r) in
+
+let 'myinv 'f = inv 'f in
+
+let 'swap = case (x, y) <-> (y, x) in
+
+let 'swap_really = 'myinv 'swap in
+
+()
+

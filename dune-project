@@ -1,6 +1,6 @@
-(lang dune 3.20)
+(lang dune 3.21)
 
-(name iso2)
+(name pisolang)
 
 (generate_opam_files true)
 
@@ -16,10 +16,10 @@
 (documentation https://url/to/documentation)
 
 (package
- (name iso2)
+ (name pisolang)
  (synopsis "A short synopsis")
  (description "A longer description")
- (depends ocaml ocamllex menhir)
+ (depends ocaml ocamllex menhir ppx_deriving)
  (tags
   ("add topics" "to describe" your project)))
 

@@ -1,0 +1,93 @@
+type nat     = Z (* 0 *) | S (* n *) of nat
+type 'a list = Nil (* [] *) | Cons (* :: *) of 'a * 'a list
+;;
+
+let rec 'len = case
+| []      <-> (0, [])
+| x :: xs <-> let (n, xs) = 'len xs in (S n, x :: xs)
+in
+
+let rec 'map 'f = case
+| []     <-> []
+| h :: t <-> 'f h :: 'map 'f t
+in
+
+let rec 'double = case
+| []      <-> []
+| x :: xs <-> x :: x :: 'double xs
+in
+
+let rec 'rev_aux = case
+| (l, (0, []))        <-> (l, (0, []))
+| (l, (S n, x :: xs)) <->
+  let (l, (n, xs)) = 'rev_aux (x :: l, (n, xs)) in
+  (l, (S n, xs))
+in
+
+let 'rev = case l <->
+  let (l, (n, [])) = 'rev_aux ([], 'len l) in
+  inv 'len (n, l)
+in
+
+let rec 'foldl_map 'f = case
+| (acc, [])      <-> (acc, [])
+| (acc, x :: xs) <->
+  let (acc, x) = 'f (acc, x) in
+  let (acc, xs) = 'foldl_map 'f (acc, xs) in
+  (acc, x :: xs)
+in
+
+let rec 'repeat = case
+| (0, x)   <-> ([], x)
+| (S n, x) <->
+  let (xs, x) = 'repeat (n, x) in
+  (x :: xs, x)
+in
+
+let rec 'split = case
+| []           <-> ([], [])
+| (x, y) :: tl <->
+  let (xs, ys) = 'split tl in
+  (x :: xs, y :: ys)
+in
+
+let 'merge = inv 'split in
+
+let rec 'partition_aux = case
+| (l, r, 0)         <-> (l, r, 0)
+| (l, x :: xs, S n) <->
+  let (l, xs, n) = 'partition_aux (x :: l, xs, n) in
+  (l, xs, S n)
+in
+
+let 'partition = case (r, n) <->
+  let (l, r, n) = 'partition_aux ([], r, n) in
+  ('rev (inv 'len (n, l)), r)
+in
+
+let 'concat = inv 'partition in
+
+(* 'add (m, n) = (m + n, n) *)
+let rec 'add = case
+| (m, S n) <-> let (m, n) = 'add (S m, n) in (m, S n)
+| (m, 0)   <-> (m, 0)
+in
+
+let 'sum = case l <-> 'foldl_map 'add (0, l) in
+
+let rec 'iota_aux = case
+| 0   <-> []
+| S n <-> let (n, n') = (n, n) in n :: 'iota_aux n'
+in
+
+let 'iota = case n <-> 'rev ('iota_aux n) in
+
+let rec 'push_back = case
+| ([], y)      <-> [y]
+| (x :: xs, y) <->
+  let y :: xs = 'push_back (xs, y) in
+  x :: y :: xs
+in
+
+'double ('iota 5)
+

@@ -1,7 +1,270 @@
-# iso2
-A reversible functional language extending https://arxiv.org/abs/2309.12151
+# PisoLang
+
+Piso (pie-so) Lang is a reversible functional programming language based on
+https://arxiv.org/abs/2309.12151 [Chardonnet et al. '24].
+PisoLang's main objective is to make reversible programming more accessible for all users.
+
+<center>
+
+| Objective                      | Status                                  |
+| :-:                            | :-:                                     |
+| Type inference - soundness     | :white_check_mark:                      |
+| Type safety - preservation     | :white_check_mark:                      |
+| Reversible Turing completeness | :white_check_mark:                      |
+| Partial isomorphism*           | :white_check_mark:                      |
+| Type inference - completeness  | Underway (highly likely to be complete) |
+| Type safety - progress         | Never (due to partiality)               |
+
+*: For any well-typed function `f`,
+   `f v` $\rightarrow^*$ `v'` if and only if `(inv f) v'` $\rightarrow^*$ `v`.
+
+</center>
 
 ## Build / Run
-`dune exec iso2 -- <file path>`
 
-You may run `dune exec iso2 -- examples/nat.iso2` for example.
+`dune exec pisolang -- example/nat.piso`
+
+## Brief Introduction
+
+Here is an example featuring the reversible function `'add`,
+which adds two numbers while preserving what has been added, i.e., `'add (m, n) = (m + n, n)`.
+Note that numeric literals are interpreted in the following way:
+`0 := Z`, `1 := S Z`, `2 := S (S Z)`, ...
+
+##### Input
+
+```ocaml
+type nat = Z | S of nat
+;;
+
+let rec 'add = case
+| (m, 0)   <-> (m, 0)
+| (m, S n) <-> let (m', n') = 'add (S m, n) in (m', S n')
+in
+
+'add (3, 4)
+```
+
+##### Output
+
+```ocaml
+'add : nat * nat <-> nat * nat
+
+(7, 4)
+- : nat * nat
+```
+
+- The results of type inference are printed upon generalizing the type of a function,
+  followed by a calculated value and its type.
+- Type definitions and a term to evaluate are separated by a double-semicolon `;;`.
+- Variables bound to functions are named in lowercase starting with a tick `'`.
+- The keyword `case` initiates pattern matching just like `function` in OCaml.
+
+##### Restrictions
+
+Any program that violates any of these restrictions gets rejected by the type checker,
+preventing you from running it.
+
+- The left-hand sides of the branches, `(m, 0)` and `(m, S n)` in this case,
+  do not overlap each other.
+- The right-hand sides of the branches, `(m, 0)` and `(m', S n')` in this case,
+  do not overlap each other.
+- Variables are used linearly* inside pattern matching except for ones bound to functions.
+
+*: details provided at the very bottom of this file
+
+## Types
+
+PisoLang supports algebraic data types as well as first-order type constructors.
+
+##### Example
+
+```ocaml
+(* simple sum type *)
+type bool = False | True
+
+(* type with data-containing variants *)
+type bool_or_unit = Bool of bool | Unit of unit
+
+(* recursive type *)
+type nat = Z | S of nat
+(* special syntax for nat:
+     0 := Z
+     1 := S Z
+     2 := S (S Z)
+     ... *)
+
+(* type with a type variable *)
+type 'a list = Nil | Cons of 'a * 'a list
+(* special syntax for list:
+         x :: xs := Cons (x, xs)
+   [x1; ...; xn] := x1 :: ... :: xn :: Nil *)
+
+(* another type with a variable *)
+type 'a option = None | Some of 'a
+
+(* type with variables *)
+type ('l, 'r) either = Left of 'l | Right of 'r
+(* Note: variables must be wrapped in a tuple because
+   the type would be no longer first-order otherwise. *)
+```
+
+## Terms and _Isos_
+
+There are two kinds of types: _base_ and _iso_.
+You can think of base types as non-functional types,
+including the unit type and product types, for instance.
+Iso types, on the other hand, are types given to functions. Iso types are of the form
+`<iso_type> ::= <base_type> <-> <base_type> | <iso_type> -> <iso_type>`.
+The left-right-arrow `<->` represents the type of pattern matching.
+The right-arrow `->` represents that of a higher-order function.
+
+For example, terms such as `(3, 5)`, `x`, `False` have base types.
+Isos such as `case True <-> False | False <-> True` have iso types
+(`bool <-> bool` in this particular case).
+
+You never write type annotations as types are automatically inferred
+by a modified version of Algorithm W.
+
+##### Example
+
+```ocaml
+(* myunit : unit *)
+let myunit = () in
+
+(* mynone : 'a option *)
+let mynone = None in
+(* Note: types get generalized as much as possible upon each let-binding.
+   I.e., `mynone` has type `'a option` for any base type 'a,
+   which enables something like the following: *)
+
+(* mylists : nat option list * bool option list *)
+let mylists = ([Some 0; mynone], [Some False; mynone]) in
+
+(* reversible function *)
+let 'not = case False <-> True | True <-> False in
+
+(* higher-order function *)
+let 'map_option = fun 'f -> case
+| None   <-> None
+| Some x <-> Some ('f x)
+in
+
+(* same but with syntactic sugar *)
+let 'map_option 'f = case
+| None   <-> None
+| Some x <-> Some ('f x)
+in
+
+(* recursive function using the keyword `rec` *)
+(* 'len l = (l, <length of l>) *)
+let rec 'len = case
+| []      <-> ([], 0)
+| x :: xs <-> let (l, n) = 'len xs in (x :: l, S n)
+in
+(* Note: as you can imagine, it is impossible to
+   have an injective function that only produces the length.
+   This fact corresponds to the linear use of variables. *)
+
+(* ([True; False; False], 3) : bool list * nat *)
+'len [True; False; False]
+```
+
+## Inversion
+
+##### Types
+Variables indicating iso types are displayed in uppercase with a preceding tick:
+`'A, ..., 'Z, 'AA, ..., 'AZ, 'BA, ...`.
+The inverse type of an iso type `'A` is denoted by `~'A`, which is defined as follows:
+`~('a <-> 'b) := 'b <-> 'a` and `~('A -> 'B) := ~'A -> ~'B`.
+
+##### Terms
+
+Any well-typed function can be inverted using the built-in function `inv`.
+`inv f` evaluates to `f^(-1)`.
+
+##### Definition of `f^(-1)`
+
+```
+                      ('x)^(-1)    :=  'x
+             (fun 'x -> f)^(-1)    :=  fun 'x -> f^(-1)
+             (fix 'x -> f)^(-1)    :=  fix 'x -> f^(-1)
+                     (f g)^(-1)    :=  f^(-1) g^(-1)
+                   (inv f)^(-1)    :=  inv f^(-1)
+          (case | p1 <-> e1            case | (p1 <-> e1)^(-1)
+                | ...              :=       | ...
+                | pn <-> en)^(-1)           | (pn <-> en)^(-1)
+
+where (p <-> let p1 = f1 p'1 in        p' <-> let p'n = fn^(-1) pn in
+             ...                   :=         ...
+             let pn = fn p'n in               let p'1 = f1^(-1) p1 in
+             p')^(-1)                         p
+```
+
+Fact: `f : 'A` if and only if `inv f : ~'A`.
+
+##### Example
+
+```ocaml
+(* splits a list of pairs into two lists *)
+(* 'split : ('a * 'b) list <-> 'a list * 'b list *)
+let rec 'split = case
+| []           <-> ([], [])
+| (x, y) :: zs <->
+      let (xs, ys) = 'split zs in
+      (x :: xs, y :: ys)
+in
+
+(* 'combine : 'a list * 'b list <-> ('a * 'b) list *)
+let 'combine = inv 'split in
+
+let 'decr_if_some = inv ('map_option (case x <-> S x)) in
+
+let some_8 = 'decr_if_some (Some 9) in
+
+(* run the program to see that 'myinv : 'A <-> ~'A *)
+let 'myinv 'f = inv 'f in
+
+(* this one goes crazy *)
+let 'silly 'f0 'f1 'f2 'f3 = 'f3 (case (x, y) <-> ('f1 y, inv 'f2 'f0 x)) (inv 'f2)
+```
+
+## Duplication / Equality Check
+
+Reversible Turing completeness depends on the ability to perform duplication
+and its inverse, i.e., an equality check. Both can be easily done via patterns.
+
+##### Example
+
+```ocaml
+let 'dup = case x <-> (x, x) in
+
+(* let (a, a) = (3, 4) fails *)
+let (a, a) = (3, 3) in
+
+(* inv 'dup (2, 3) fails *)
+let two = inv 'dup (2, 2) in
+
+(* (3, (False, False), 2) *)
+(a, 'dup False, two)
+```
+
+Speaking of the linearity inside pattern matching,
+any number of occurrences of a variable in a single pattern counts as one.
+
+```ocaml
+case x <->
+    let (a, b) = (x, x) in
+    (a, b) (* (a, b, x) fails because x is already used *)
+```
+
+## Contents of `/example`
+
+- `rtm.piso`: a reversible Turing machine that computes bitwise negations
+- `run_length.piso`: polymorphic run-length compression
+- `msort.piso`: reversible polymorphic merge sort
+- `isort.piso`: reversible polymorphic insertion sort
+- `list.piso`: polymorphic operations on lists
+- `nat.piso`: operations on natural numbers
+- `misc.piso`: random stuff
+
