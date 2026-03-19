@@ -4,8 +4,6 @@ Piso (pie-so) Lang is a reversible functional programming language based on
 https://arxiv.org/abs/2309.12151 [Chardonnet et al. '24].
 PisoLang's main objective is to make reversible programming more accessible for all users.
 
-<center>
-
 | Objective                      | Status                                  |
 | :-:                            | :-:                                     |
 | Type inference - soundness     | :white_check_mark:                      |
@@ -16,9 +14,7 @@ PisoLang's main objective is to make reversible programming more accessible for 
 | Type safety - progress         | Never (due to partiality)               |
 
 *: For any well-typed function `f`,
-   `f v` $\rightarrow^*$ `v'` if and only if `(inv f) v'` $\rightarrow^*$ `v`.
-
-</center>
+   `f v` $\rightarrow^\*$ `v'` if and only if `(inv f) v'` $\rightarrow^\*$ `v`.
 
 ## Build / Run
 
@@ -31,7 +27,7 @@ which adds two numbers while preserving what has been added, i.e., `'add (m, n) 
 Note that numeric literals are interpreted in the following way:
 `0 := Z`, `1 := S Z`, `2 := S (S Z)`, ...
 
-##### Input
+#### Input
 
 ```ocaml
 type nat = Z | S of nat
@@ -45,7 +41,7 @@ in
 'add (3, 4)
 ```
 
-##### Output
+#### Output
 
 ```ocaml
 'add : nat * nat <-> nat * nat
@@ -60,7 +56,7 @@ in
 - Variables bound to functions are named in lowercase starting with a tick `'`.
 - The keyword `case` initiates pattern matching just like `function` in OCaml.
 
-##### Restrictions
+#### Restrictions
 
 Any program that violates any of these restrictions gets rejected by the type checker,
 preventing you from running it.
@@ -71,13 +67,13 @@ preventing you from running it.
   do not overlap each other.
 - Variables are used linearly* inside pattern matching except for ones bound to functions.
 
-*: details provided at the very bottom of this file
+*: details provided in "Duplication / Equality Check"
 
 ## Types
 
 PisoLang supports algebraic data types as well as first-order type constructors.
 
-##### Example
+#### Example
 
 ```ocaml
 (* simple sum type *)
@@ -126,7 +122,7 @@ Isos such as `case True <-> False | False <-> True` have iso types
 You never write type annotations as types are automatically inferred
 by a modified version of Algorithm W.
 
-##### Example
+#### Example
 
 ```ocaml
 (* myunit : unit *)
@@ -172,18 +168,18 @@ in
 
 ## Inversion
 
-##### Types
+#### Types
 Variables indicating iso types are displayed in uppercase with a preceding tick:
 `'A, ..., 'Z, 'AA, ..., 'AZ, 'BA, ...`.
 The inverse type of an iso type `'A` is denoted by `~'A`, which is defined as follows:
 `~('a <-> 'b) := 'b <-> 'a` and `~('A -> 'B) := ~'A -> ~'B`.
 
-##### Terms
+#### Terms
 
 Any well-typed function can be inverted using the built-in function `inv`.
 `inv f` evaluates to `f^(-1)`.
 
-##### Definition of `f^(-1)`
+#### Definition of `f^(-1)`
 
 ```
                       ('x)^(-1)    :=  'x
@@ -203,7 +199,7 @@ where (p <-> let p1 = f1 p'1 in        p' <-> let p'n = fn^(-1) pn in
 
 Fact: `f : 'A` if and only if `inv f : ~'A`.
 
-##### Example
+#### Example
 
 ```ocaml
 (* splits a list of pairs into two lists *)
@@ -234,15 +230,15 @@ let 'silly 'f0 'f1 'f2 'f3 = 'f3 (case (x, y) <-> ('f1 y, inv 'f2 'f0 x)) (inv '
 Reversible Turing completeness depends on the ability to perform duplication
 and its inverse, i.e., an equality check. Both can be easily done via patterns.
 
-##### Example
+#### Example
 
 ```ocaml
 let 'dup = case x <-> (x, x) in
 
-(* let (a, a) = (3, 4) fails *)
+(* let (a, a) = (3, 4) would fail *)
 let (a, a) = (3, 3) in
 
-(* inv 'dup (2, 3) fails *)
+(* inv 'dup (2, 3) would fail *)
 let two = inv 'dup (2, 2) in
 
 (* (3, (False, False), 2) *)
@@ -255,7 +251,7 @@ any number of occurrences of a variable in a single pattern counts as one.
 ```ocaml
 case x <->
     let (a, b) = (x, x) in
-    (a, b) (* (a, b, x) fails because x is already used *)
+    (a, b) (* (a, b, x) would fail because x is already used *)
 ```
 
 ## Contents of `/example`
