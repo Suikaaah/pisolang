@@ -1,29 +1,60 @@
-type nat             = Z (* 0 *) | S (* n *) of nat
-type 'a list         = Nil (* [] *) | Cons (* :: *) of 'a * 'a list
+type nat             = Z | S of nat
+type 'a list         = Nil | Cons of 'a * 'a list
 type bool            = False | True
 type 'a option       = None | Some of 'a
 type ('l, 'r) either = Left of 'l | Right of 'r
 ;;
 
-let 'option_map 'f = case
-| None   <-> None
-| Some x <-> Some ('f x)
+let rec 'len = case
+| []      <-> (0, [])
+| x :: xs <-> let (n, xs) = 'len xs in (S n, x :: xs)
 in
+
+let rec 'foldl_map 'f = case
+| (acc, [])      <-> (acc, [])
+| (acc, x :: xs) <->
+  let (acc, y) = 'f (acc, x) in
+  let (acc, ys) = 'foldl_map 'f (acc, xs) in
+  (acc, y :: ys)
+in
+
+let rec 'init_aux 'f = case
+| (0, acc)   <-> (0, acc)
+| (S n, acc) <->
+  let (m, n) = (n, n) in
+  let (n, acc) = 'init_aux 'f (n, 'f m :: acc) in
+  (S n, acc)
+in
+
+let 'init 'f = case n <-> inv 'len ('init_aux 'f (n, [])) in
+
+let 'either_of_bool = case
+| False <-> Left ()
+| True  <-> Right ()
+in
+
+let rec 'unit_list_of_nat = case
+| 0   <-> []
+| S n <-> () :: 'unit_list_of_nat n
+in
+
+let folded = 'foldl_map
+  (case (acc, x) <-> (S acc, 'either_of_bool x))
+  (0, [False; False; True])
+in
+
+let 'silly 'f 'g 'h 'i = 'i (case (x, y) <-> ('g y, inv 'h 'f x)) (inv 'h) in
 
 let 'if 'then 'else = case
 | (True, x)  <-> (True, 'then x)
 | (False, x) <-> (False, 'else x)
 in
 
-let 'compose 'g 'f = case x <-> 'g ('f x) in
+let 'comp  'g 'f = case x <-> 'g ('f x) in
+let 'conj  'r 'i = 'comp (inv 'r) ('comp 'i 'r) in
+let 'myinv 'f    = inv 'f in
+let 'swap        = case (x, y) <-> (y, x) in
+let 'app   'f    = case x <-> 'f x in
 
-let 'invl 'r 'i = 'compose (inv 'r) ('compose 'i 'r) in
-
-let 'myinv 'f = inv 'f in
-
-let 'swap = case (x, y) <-> (y, x) in
-
-let 'swap_really = 'myinv 'swap in
-
-()
+'init ('app 'unit_list_of_nat) 5
 

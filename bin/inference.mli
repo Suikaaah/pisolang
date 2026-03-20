@@ -31,7 +31,11 @@ val find_generalizable_base :
 val find_generalizable_iso :
   Types.iso ctx -> Types.base ctx -> Types.iso -> int list
 
-val unify : eq_combined list -> Types.iso subst list * Types.base subst list
+val unify :
+  map:string Util.IntMap.t ->
+  eq_combined list ->
+  Types.iso subst list * Types.base subst list
+
 val pat_gen : Util.generator -> Terms.pat -> Types.base Util.IntMap.t
 
 val generalize_iso :

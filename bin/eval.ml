@@ -45,7 +45,7 @@ let rec eval_term = function
           begin match List1.to_list l |> List.find_map finder with
           | Some (substs, e) ->
               subst_term_bulk substs (term_of_expr e) |> eval_term
-          | None -> failwith "stuck: IsoCase (no match)"
+          | None -> failwith "stuck: IsoCase (no branch matched)"
           end
       | _ -> failwith "stuck: TermIsoApp (unreachable)"
     end
@@ -53,7 +53,7 @@ let rec eval_term = function
       let v = eval_term t_1 in
       match unify (p, v) with
       | Some substs -> subst_term_bulk substs t_2 |> eval_term
-      | None -> failwith "stuck: TermLet (no match)"
+      | None -> failwith "stuck: TermLet (pattern did not match)"
     end
   | TermIso { phi; omega; t } -> subst_iso_term (omega, phi) t |> eval_term
 

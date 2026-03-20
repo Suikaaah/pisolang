@@ -97,49 +97,60 @@ let find_generalizable_iso phi delta t =
   |> IntSet.diff (Types.fv_iso t)
   |> IntSet.to_list
 
-let rec unify =
+let rec unify ~map =
   let open Types in
   function
   | [] -> ([], [])
   | EqBase e :: es -> begin
       match e with
-      | a, b when a = b -> unify es
+      | a, b when a = b -> unify ~map es
       | BaseProd la, BaseProd lb when List2.eq_length la lb ->
           let wrapped = List2.combine la lb |> List2.map (fun e -> EqBase e) in
-          List2.to_list wrapped @ es |> unify
+          List2.to_list wrapped @ es |> unify ~map
       | BaseApp (l_1, x_1), BaseApp (l_2, x_2)
         when x_1 = x_2 && List1.eq_length l_1 l_2 ->
           let wrapped =
             List1.combine l_1 l_2 |> List1.map (fun e -> EqBase e)
           in
-          List1.to_list wrapped @ es |> unify
-      | BaseVar v, a | a, BaseVar v ->
-          if is_fv_base v a then failwith "unification failed: base fv"
-          else
-            let s = (a, v) in
-            let substs_iso, substs_base = subst_eq_base s es |> unify in
-            (substs_iso, s :: substs_base)
-      | _ -> failwith "unification failed: base"
+          List1.to_list wrapped @ es |> unify ~map
+      | BaseVar v, a when is_fv_base v a |> not ->
+          let s = (a, v) in
+          let substs_iso, substs_base = subst_eq_base s es |> unify ~map in
+          (substs_iso, s :: substs_base)
+      | a, BaseVar v when is_fv_base v a |> not ->
+          let s = (a, v) in
+          let substs_iso, substs_base = subst_eq_base s es |> unify ~map in
+          (substs_iso, s :: substs_base)
+      | a, b ->
+          let map' = create_map_base [ a; b ] in
+          let pp = Util.union ~weak:map ~strong:map' |> pp_base' in
+          Format.asprintf "unable to unify `%a` and `%a`" pp a pp b |> failwith
     end
   | EqIso e :: es -> begin
       match e with
-      | t_1, t_2 when t_1 = t_2 -> unify es
+      | t_1, t_2 when t_1 = t_2 -> unify ~map es
       | IsoArrow (t_11, t_12), IsoArrow (t_21, t_22) ->
-          EqIso (t_11, t_21) :: EqIso (t_12, t_22) :: es |> unify
+          EqIso (t_11, t_21) :: EqIso (t_12, t_22) :: es |> unify ~map
       | IsoBiArrow (a_1, b_1), IsoBiArrow (a_2, b_2) ->
-          EqBase (a_1, a_2) :: EqBase (b_1, b_2) :: es |> unify
-      | IsoInv t_1, IsoInv t_2 -> EqIso (t_1, t_2) :: es |> unify
+          EqBase (a_1, a_2) :: EqBase (b_1, b_2) :: es |> unify ~map
+      | IsoInv t_1, IsoInv t_2 -> EqIso (t_1, t_2) :: es |> unify ~map
       | IsoInv t, IsoBiArrow (a, b) | IsoBiArrow (a, b), IsoInv t ->
-          EqIso (t, IsoBiArrow (b, a)) :: es |> unify
+          EqIso (t, IsoBiArrow (b, a)) :: es |> unify ~map
       | IsoInv t, IsoArrow (t_1, t_2) | IsoArrow (t_1, t_2), IsoInv t ->
-          EqIso (t, IsoArrow (invert t_1, invert t_2)) :: es |> unify
-      | IsoVar v, t | t, IsoVar v ->
-          if is_fv_iso v t then failwith "unification failed: iso fv"
-          else
-            let s = (t, v) in
-            let substs_iso, substs_base = subst_eq_iso s es |> unify in
-            (s :: substs_iso, substs_base)
-      | _ -> failwith "unification failed: iso"
+          EqIso (t, IsoArrow (invert t_1, invert t_2)) :: es |> unify ~map
+      | IsoVar v, t when is_fv_iso v t |> not ->
+          let s = (t, v) in
+          let substs_iso, substs_base = subst_eq_iso s es |> unify ~map in
+          (s :: substs_iso, substs_base)
+      | t, IsoVar v when is_fv_iso v t |> not ->
+          let s = (t, v) in
+          let substs_iso, substs_base = subst_eq_iso s es |> unify ~map in
+          (s :: substs_iso, substs_base)
+      | t_1, t_2 ->
+          let map' = create_map_iso [ t_1; t_2 ] in
+          let pp = Util.union ~weak:map ~strong:map' |> pp_iso' in
+          Format.asprintf "unable to unify `%a` and `%a`" pp t_1 pp t_2
+          |> failwith
     end
 
 let pat_gen gen p =
@@ -153,18 +164,19 @@ let pat_gen gen p =
   impl gen p |> Util.IntMap.of_list
 
 let generalize_iso ~map phi delta es v t =
-  let substs_iso, substs_base = unify es in
+  let substs_iso, substs_base = unify ~map es in
   let t' = Types.subst_iso_bulk substs_iso substs_base t in
   let phi' = subst_phi_bulk substs_iso substs_base phi in
   let delta' = subst_delta_bulk substs_base delta in
   let forall = find_generalizable_iso phi' delta' t' in
   let generalized = { forall; ty = t' } in
   Format.printf "%s : \x1b[35m%a\x1b[0m\n" (Util.IntMap.find v map)
-    (Types.pp_iso_remap map) (Types.push_inv t');
+    (Types.pp_iso' (Util.union ~weak:map ~strong:(Types.create_map_iso [ t' ])))
+    (Types.push_inv t');
   Util.IntMap.add v generalized phi'
 
 let rec generalize_base ?(disabled = false) ~map gen phi delta es p a =
-  let substs_iso, substs_base = unify es in
+  let substs_iso, substs_base = unify ~map es in
   let a' = Types.subst_base_bulk substs_base a in
   let phi' = subst_phi_bulk substs_iso substs_base phi in
   let delta' = subst_delta_bulk substs_base delta in
@@ -179,7 +191,7 @@ let rec generalize_base ?(disabled = false) ~map gen phi delta es p a =
     Terms.term_of_pat p |> infer_term ~map gen phi' delta''
   in
   let es_pat = EqBase (ty_pat, a') :: combine_eq e_base_pat e_iso_pat in
-  let substs_iso_pat, substs_base_pat = unify es_pat in
+  let substs_iso_pat, substs_base_pat = unify ~map es_pat in
   let generalized =
     let lift a =
       {
@@ -400,7 +412,7 @@ and infer_iso ~map gen psi delta =
 let auto ~map gen phi delta t =
   let { ty; e_base; e_iso } = infer_term ~map gen phi delta t in
   let combined = combine_eq e_base e_iso in
-  let _substs_iso, substs_base = unify combined in
+  let _substs_iso, substs_base = unify ~map combined in
   Types.subst_base_bulk substs_base ty
 
 let init_ctx ts =

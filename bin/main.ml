@@ -21,4 +21,7 @@ let () =
       let a = Inference.auto ~map gen phi delta t in
       let v = Eval.eval_term t in
       Format.printf "\n\x1b[1m%a\x1b[0m\n- : \x1b[35m%a\x1b[0m\n"
-        (Terms.mp_value map) v (Types.pp_base_remap map) a
+        (Terms.pp_value' map) v
+        (Types.pp_base'
+           (Util.union ~weak:map ~strong:(Types.create_map_base [ a ])))
+        a

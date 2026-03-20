@@ -25,6 +25,8 @@ val subst_iso : iso subst -> iso -> iso
 val subst_base_iso : base subst -> iso -> iso
 val subst_base_bulk : base subst list -> base -> base
 val subst_iso_bulk : iso subst list -> base subst list -> iso -> iso
-val pp_base_remap : string Util.IntMap.t -> Format.formatter -> base -> unit
-val pp_iso_remap : string Util.IntMap.t -> Format.formatter -> iso -> unit
+val pp_base' : string Util.IntMap.t -> Format.formatter -> base -> unit
+val pp_iso' : string Util.IntMap.t -> Format.formatter -> iso -> unit
+val create_map_base : base list -> string Util.IntMap.t
+val create_map_iso : iso list -> string Util.IntMap.t
 val push_inv : iso -> iso

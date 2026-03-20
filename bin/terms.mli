@@ -49,7 +49,7 @@ val subst_iso : iso subst -> iso -> iso
 val subst_iso_expr : iso subst -> expr -> expr
 val subst_iso_term : iso subst -> term -> term
 val invert : iso -> iso
-val mp_value : string Util.IntMap.t -> Format.formatter -> value -> unit
+val pp_value' : string Util.IntMap.t -> Format.formatter -> value -> unit
 val alpha_term : Alpha.u -> term -> term
 val is_fv_pat : int -> pat -> bool
 val fv_pat : pat -> int list

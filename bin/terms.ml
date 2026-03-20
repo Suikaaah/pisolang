@@ -126,7 +126,7 @@ and invert_branch (acc : expr) : expr -> pat * expr = function
         (ExprLetApp { p_1 = p_2; omega = invert omega; p_2 = p_1; e = acc })
         e
 
-let rec mp_value map fmt =
+let rec pp_value' map fmt =
   let f = Format.fprintf in
   let m c = Util.IntMap.find c map in
   function
@@ -149,7 +149,7 @@ let rec mp_value map fmt =
           let rec cons first = function
             | ValueApp (_, ValueTuple List2.(v :: List1.(v' :: []))) ->
                 if first then f fmt "[" else f fmt "; ";
-                f fmt "%a" (mp_value map) v;
+                f fmt "%a" (pp_value' map) v;
                 cons false v'
             | _ -> f fmt "]"
           in
@@ -158,15 +158,15 @@ let rec mp_value map fmt =
           match v with
           | ValueApp (c', _) -> begin
               match m c' with
-              | "S" | "Cons" -> f fmt "%s %a" (m c) (mp_value map) v
-              | _ -> f fmt "%s (%a)" (m c) (mp_value map) v
+              | "S" | "Cons" -> f fmt "%s %a" (m c) (pp_value' map) v
+              | _ -> f fmt "%s (%a)" (m c) (pp_value' map) v
             end
-          | _ -> f fmt "%s %a" (m c) (mp_value map) v
+          | _ -> f fmt "%s %a" (m c) (pp_value' map) v
         end
     end
   | ValueTuple List2.(v :: vs) ->
-      f fmt "(%a" (mp_value map) v;
-      List1.to_list vs |> List.iter (f fmt ", %a" (mp_value map));
+      f fmt "(%a" (pp_value' map) v;
+      List1.to_list vs |> List.iter (f fmt ", %a" (pp_value' map));
       f fmt ")"
 
 let pat_gen alpha p =

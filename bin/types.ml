@@ -118,17 +118,16 @@ let rec pp_base' map fmt =
           f fmt ") %s" (m x)
     end
 
-let pp_base_remap map fmt a =
-  let fv = fv_base_list a in
-  let map' = Alpha.create_alphabet () in
+let create_map_base ts =
+  let fv = List.map fv_base_list ts |> List.flatten in
+  let map = Alpha.create_alphabet () in
   List.iter
     begin fun v ->
-      let _ = Alpha.get_alphabet map' v in
+      let _ = Alpha.get_alphabet map v in
       ()
     end
     fv;
-  let map = Util.union ~weak:map ~strong:(Alpha.destruct_alphabet map') in
-  pp_base' map fmt a
+  Alpha.destruct_alphabet map
 
 let rec pp_iso' map fmt =
   let f = Format.fprintf in
@@ -151,8 +150,8 @@ let rec pp_iso' map fmt =
       | IsoVar _ | IsoInv _ -> f fmt "~%a" (pp_iso' map) t
     end
 
-let pp_iso_remap map fmt t =
-  let fv = fv_iso_sep_list t in
+let create_map_iso ts =
+  let fv = List.map fv_iso_sep_list ts |> List.flatten in
   let map_base = Alpha.create_alphabet () in
   let map_iso = Alpha.create_alphabet () in
   List.iter
@@ -165,13 +164,9 @@ let pp_iso_remap map fmt t =
           ()
     end
     fv;
-  let map' =
-    Util.union
-      ~weak:(Alpha.destruct_alphabet map_base)
-      ~strong:(Alpha.destruct_alphabet map_iso)
-  in
-  let map = Util.union ~weak:map ~strong:map' in
-  pp_iso' map fmt t
+  Util.union
+    ~weak:(Alpha.destruct_alphabet map_base)
+    ~strong:(Alpha.destruct_alphabet map_iso)
 
 let rec push_inv = function
   | (IsoBiArrow _ | IsoVar _ | IsoInv (IsoVar _)) as t -> t
