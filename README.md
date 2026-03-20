@@ -254,7 +254,7 @@ case x <->
     (a, b) (* (a, b, x) would fail because x is already used *)
 ```
 
-## Contents of `/example`
+## Contents of `examples`
 
 - `rtm.piso`: a reversible Turing machine that computes bitwise negations
 - `run_length.piso`: polymorphic run-length compression
@@ -263,4 +263,9 @@ case x <->
 - `list.piso`: polymorphic operations on lists
 - `nat.piso`: operations on natural numbers
 - `misc.piso`: random stuff
+
+## Contents of `vim`
+
+- `syntax/piso.vim`: syntax highlighting
+- `ftdetect/piso.vim`: file for vim to recognize `.piso` file extension
 
