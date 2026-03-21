@@ -12,11 +12,13 @@ in
 let rec 'insert 'lt = case
 | (x, [])      <-> ([x], 0)
 | (x, y :: ys) <->
-  let (x :: y :: ys, n) = match ('lt (y, x), ys) with
+  let (x :: y :: ys, n) =
+    match ('lt (y, x), ys) with
     | ((False, (y, x)), ys) <-> (x :: y :: ys, 0)
     | ((True, (y, x)), ys)  <->
       let (ys, n) = 'insert 'lt (x, ys) in (y :: ys, S n)
-  in (x :: y :: ys, n)
+  in
+  (x :: y :: ys, n)
 in
 
 let rec 'isort_aux 'lt = case

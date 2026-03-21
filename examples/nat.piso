@@ -20,13 +20,12 @@ let rec 'add = case
 in
 
 let rec 'cantor_pairing x =
-  let y =
+  match
     match x with
     | (S i, j) <-> Some (i, S j)
     | (0, S j) <-> Some (j, 0)
     | (0, 0)   <-> None
-  in
-  match y with Some x <-> S ('cantor_pairing x) | None <-> 0
+  with Some x <-> S ('cantor_pairing x) | None <-> 0
 in
 
 let rec 'cmp = case

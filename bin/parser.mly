@@ -40,7 +40,7 @@
 %type <base> base_grouped base
 %type <variant> variant
 %type <pat> pat_grouped pat_almost pat
-%type <epat> epat_grouped epat_almost epat
+%type <epat> epat_grouped epat_almost epat_cons epat
 %type <expr> expr expr_nocase
 %type <pat * expr> branch
 %type <iso> iso_grouped iso_almost iso
@@ -122,59 +122,31 @@ epat_grouped:
 epat_almost:
   | ep = epat_grouped; { ep }
   | c = UPPER; ep = epat_grouped; { EPatCtorApp (c, ep) }
-  | omega = iso_almost; ep = epat_grouped;  { EPatIsoApp (omega, ep) }
+  | omega = iso_almost; ep = epat_grouped; { EPatIsoApp (omega, ep) }
 
-epat:
+epat_cons:
   | ep = epat_almost; { ep }
-  | ep_1 = epat_almost; CONS; ep_2 = epat;
+  | ep_1 = epat_almost; CONS; ep_2 = epat_cons;
     { EPatCtorApp ("Cons", EPatTuple (List2.of_list [ep_1; ep_2])) }
 
-expr:
-  | ep = epat; { ExprEPat ep }
+epat:
+  | ep = epat_cons; { ep }
+  | MATCH; e = epat; WITH; PIPE?; l = list1(PIPE, branch);
+    { EPatIsoApp (IsoCase l, e) }
 
+expr:
+  | ep = epat_cons; { ExprEPat ep }
   | LET; p = pat; EQUAL; ep = epat; IN; e = expr;
-  | LPAREN; LET; p = pat; EQUAL; ep = epat; IN; e = expr_nocase; RPAREN;
     { ExprLet { p; ep; e } }
 
-  | LET; p = pat; EQUAL; MATCH; ep = epat; WITH;
-    PIPE?; l = list1(PIPE, branch); IN; e = expr;
-  | LET; p = pat; EQUAL; LPAREN; MATCH; ep = epat; WITH;
-    PIPE?; l = list1(PIPE, branch); RPAREN; IN; e = expr;
-    { ExprLet { p; ep = EPatIsoApp (IsoCase l, ep); e } }
-
-  | LPAREN; LET; p = pat; EQUAL; MATCH; ep = epat; WITH;
-    PIPE?; l = list1(PIPE, branch); IN; e = expr_nocase; RPAREN;
-  | LPAREN; LET; p = pat; EQUAL; LPAREN; MATCH; ep = epat; WITH;
-    PIPE?; l = list1(PIPE, branch); RPAREN; IN; e = expr_nocase; RPAREN;
-    { ExprLet { p; ep = EPatIsoApp (IsoCase l, ep); e } }
-
-  | LPAREN; MATCH; ep = epat; WITH; PIPE?; l = list1(PIPE, branch); RPAREN;
-    { ExprEPat (EPatIsoApp (IsoCase l, ep)) }
+  | LPAREN; LET; p = pat; EQUAL; ep = epat; IN; e = expr_nocase; RPAREN;
+    { ExprLet { p; ep; e } }
 
 expr_nocase:
   | ep = epat; { ExprEPat ep }
-
   | LET; p = pat; EQUAL; ep = epat; IN; e = expr_nocase;
   | LPAREN; LET; p = pat; EQUAL; ep = epat; IN; e = expr_nocase; RPAREN;
     { ExprLet { p; ep; e } }
-
-  | LET; p = pat; EQUAL; MATCH; ep = epat; WITH;
-    PIPE?; l = list1(PIPE, branch); IN; e = expr_nocase;
-  | LET; p = pat; EQUAL; LPAREN; MATCH; ep = epat; WITH;
-    PIPE?; l = list1(PIPE, branch); RPAREN; IN; e = expr_nocase;
-    { ExprLet { p; ep = EPatIsoApp (IsoCase l, ep); e } }
-
-  | LPAREN; LET; p = pat; EQUAL; MATCH; ep = epat; WITH;
-    PIPE?; l = list1(PIPE, branch); IN; e = expr_nocase; RPAREN;
-  | LPAREN; LET; p = pat; EQUAL; LPAREN; MATCH; ep = epat; WITH;
-    PIPE?; l = list1(PIPE, branch); RPAREN; IN; e = expr_nocase; RPAREN;
-    { ExprLet { p; ep = EPatIsoApp (IsoCase l, ep); e } }
-
-  | LPAREN; MATCH; ep = epat; WITH; PIPE?; l = list1(PIPE, branch); RPAREN;
-    { ExprEPat (EPatIsoApp (IsoCase l, ep)) }
-
-  | MATCH; ep = epat; WITH; PIPE?; l = list1(PIPE, branch);
-    { ExprEPat (EPatIsoApp (IsoCase l, ep)) }
 
 branch:
   | p = pat; BIARROW; e = expr; { (p, e) }
@@ -230,6 +202,7 @@ term:
       let omega = lambdas_of_params params omega in
       TermIso { phi; omega = IsoFix (phi, omega); t }
     }
+
   | LET; REC; phi = TICKED; params = TICKED*; p = pat; EQUAL; e = expr_nocase; IN; t = term;
     {
       let omega = IsoCase List1.((p, e) :: []) in

@@ -1,0 +1,19 @@
+type nat             = Z (* 0 *) | S (* n *) of nat
+type 'a list         = Nil (* [] *) | Cons (* :: *) of 'a * 'a list
+type bool            = False | True
+type 'a option       = None | Some of 'a
+type ('l, 'r) either = Left of 'l | Right of 'r
+type 'a tree         = Leaf | Node of 'a tree * 'a * 'a tree
+;;
+
+let rec 'fold_map 'f = case
+| (acc, Leaf)           <-> (acc, Leaf)
+| (acc, Node (l, x, r)) <->
+  let (acc, l) = 'fold_map 'f (acc, l) in
+  let (acc, x) = 'f (acc, x) in
+  let (acc, r) = 'fold_map 'f (acc, r) in
+  (acc, Node (l, x, r))
+in
+
+()
+

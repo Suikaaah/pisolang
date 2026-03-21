@@ -7,18 +7,22 @@ type ('l, 'r) either = Left of 'l | Right of 'r
 let rec 'run_length 'eq = case
 | []      <-> []
 | x :: xs <->
-  let branched = match (x, 'run_length 'eq xs) with
+  let branched =
+    match (x, 'run_length 'eq xs) with
     | (x, [])           <-> Left x
-    | (x, (y, n) :: ys) <->
-      let l = match ('eq (x, y), n, ys) with
+    | (x, (y, n) :: ys) <-> Right begin
+        match ('eq (x, y), n, ys) with
         | ((True, (x, x)), n, ys)  <-> (x, S n) :: ys
         | ((False, (x, y)), n, ys) <-> (x, 0) :: (y, n) :: ys
-      in Right l
-  in let x :: xs = match branched with
+      end
+  in
+  let x :: xs =
+    match branched with
     | Left x                    <-> [(x, 0)]
     | Right ((x, S n) :: ys)    <-> (x, S n) :: ys
     | Right ((x, 0) :: y :: ys) <-> (x, 0) :: y :: ys
-  in x :: xs
+  in
+  x :: xs
 in
 
 let rec 'nat_eq = case
