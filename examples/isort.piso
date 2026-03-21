@@ -6,7 +6,7 @@ type bool    = False | True
 let 'recover 'f i =
   let (o, g) = 'f i in
   let (o, o') = (o, o) in
-  (o, inv 'f (o', g))
+  (o, 'inv 'f (o', g))
 in
 
 let rec 'insert 'lt = case
@@ -28,7 +28,7 @@ let rec 'isort_aux 'lt = case
   let (xs, n) = 'insert 'lt (x, xs) in (xs, n :: ns)
 in
 
-let 'isort 'lt = 'recover ('isort_aux 'lt) in
+let 'isort 'lt = 'isort_aux 'lt |> 'recover in
 
 let rec 'nat_lt = case
 | (0, S n)   <-> (True, (0, S n))

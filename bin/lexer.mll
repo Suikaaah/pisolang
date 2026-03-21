@@ -26,6 +26,7 @@ rule read = parse
   | "[" { LBRACKET }
   | "]" { RBRACKET }
   | "*" { TIMES }
+  | "|>" { TRIANGLE }
   | "|" { PIPE }
   | "," { COMMA }
   | ";" { SEMICOLON }
@@ -40,7 +41,6 @@ rule read = parse
   | "in" { IN }
   | "fix" { FIX }
   | "type" { TYPE }
-  | "inv" { INV }
   | "rec" { REC }
   | "of" { OF }
   | "fun" { FUN }

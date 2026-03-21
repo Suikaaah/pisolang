@@ -14,7 +14,7 @@ PisoLang's main objective is to make reversible programming more accessible for 
 | Type safety - progress         | Never (due to partiality)               |
 
 *: For any well-typed function `f`,
-   `f v` $\rightarrow^\*$ `v'` if and only if `(inv f) v'` $\rightarrow^\*$ `v`.
+   `f v` $\rightarrow^\*$ `v'` if and only if `('inv f) v'` $\rightarrow^\*$ `v`.
 
 ## Build / Run
 
@@ -44,6 +44,7 @@ in
 #### Output
 
 ```ocaml
+'inv : 'A -> ~'A
 'add : nat * nat <-> nat * nat
 
 (7, 4)
@@ -52,6 +53,7 @@ in
 
 - The results of type inference are printed upon generalizing the type of a function,
   followed by a calculated value and its type.
+- `'inv` is a built-in function to invert functions. Details are provided in "Inversion".
 - Type definitions and a term to evaluate are separated by a double-semicolon `;;`.
 - Variables bound to functions are named in lowercase starting with a tick `'`.
 - The keyword `case` initiates pattern matching just like `function` in OCaml.
@@ -152,6 +154,11 @@ let 'map_option 'f = case
 | Some x <-> Some ('f x)
 in
 
+let 'map_fst 'f = case (x, y) <-> ('f x, y) in
+
+(* same but with syntactic sugar *)
+let 'map_fst 'f (x, y) = ('f x, y) in
+
 (* recursive function using the keyword `rec` *)
 (* 'len l = (l, <length of l>) *)
 let rec 'len = case
@@ -176,8 +183,8 @@ The inverse type of an iso type `'A` is denoted by `~'A`, which is defined as fo
 
 #### Terms
 
-Any well-typed function can be inverted using the built-in function `inv`.
-`inv f` evaluates to `f^(-1)`.
+Any well-typed function can be inverted using the built-in function `'inv`.
+`'inv f` evaluates to `f^(-1)`.
 
 #### Definition of `f^(-1)`
 
@@ -186,7 +193,6 @@ Any well-typed function can be inverted using the built-in function `inv`.
              (fun 'x -> f)^(-1)    :=  fun 'x -> f^(-1)
              (fix 'x -> f)^(-1)    :=  fix 'x -> f^(-1)
                      (f g)^(-1)    :=  f^(-1) g^(-1)
-                   (inv f)^(-1)    :=  inv f^(-1)
           (case | p1 <-> e1            case | (p1 <-> e1)^(-1)
                 | ...              :=       | ...
                 | pn <-> en)^(-1)           | (pn <-> en)^(-1)
@@ -197,7 +203,7 @@ where (p <-> let p1 = f1 p'1 in        p' <-> let p'n = fn^(-1) pn in
              p')^(-1)                         p
 ```
 
-Fact: `f : 'A` if and only if `inv f : ~'A`.
+Fact: `f : 'A` if and only if `'inv f : ~'A`.
 
 #### Example
 
@@ -212,17 +218,17 @@ let rec 'split = case
 in
 
 (* 'combine : 'a list * 'b list <-> ('a * 'b) list *)
-let 'combine = inv 'split in
+let 'combine = 'inv 'split in
 
-let 'decr_if_some = inv ('map_option (case x <-> S x)) in
+let 'decr_if_some = 'inv ('map_option (case x <-> S x)) in
+
+(* same but with syntactic sugar *)
+let 'decr_if_some = 'map_option (case x <-> S x) |> 'inv in
 
 let some_8 = 'decr_if_some (Some 9) in
 
-(* run the program to see that 'myinv : 'A <-> ~'A *)
-let 'myinv 'f = inv 'f in
-
 (* this one goes crazy *)
-let 'silly 'f0 'f1 'f2 'f3 = 'f3 (case (x, y) <-> ('f1 y, inv 'f2 'f0 x)) (inv 'f2)
+let 'silly 'f0 'f1 'f2 'f3 = 'f3 (case (x, y) <-> ('f1 y, 'inv 'f2 'f0 x)) ('inv 'f2)
 ```
 
 ## Duplication / Equality Check
@@ -233,13 +239,13 @@ and its inverse, i.e., an equality check. Both can be easily done via patterns.
 #### Example
 
 ```ocaml
-let 'dup = case x <-> (x, x) in
+let 'dup x = (x, x) in
 
 (* let (a, a) = (3, 4) would fail *)
 let (a, a) = (3, 3) in
 
-(* inv 'dup (2, 3) would fail *)
-let two = inv 'dup (2, 2) in
+(* 'inv 'dup (2, 3) would fail *)
+let two = 'inv 'dup (2, 2) in
 
 (* (3, (False, False), 2) *)
 (a, 'dup False, two)
@@ -263,6 +269,7 @@ case x <->
 - `list.piso`: polymorphic operations on lists
 - `nat.piso`: operations on natural numbers
 - `misc.piso`: random stuff
+- `tree.piso`: operations on trees
 
 ## Contents of `vim`
 

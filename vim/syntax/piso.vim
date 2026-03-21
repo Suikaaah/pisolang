@@ -1,7 +1,7 @@
 if exists("b:current_syntax") | finish | endif
 
-syntax keyword PisoKeyword unit let in fix type inv rec of fun case match with begin end
-syntax match PisoSymbol "\((\|)\|\[\|\]\|\*\||\|,\|;\|::\|\->\|<\->\|=\)"
+syntax keyword PisoKeyword unit let in fix type rec of fun case match with begin end
+syntax match PisoSymbol "\((\|)\|\[\|\]\|\*\||>\||\|,\|;\|::\|\->\|<\->\|=\)"
 syntax match PisoNat "\<\d\+\>"
 syntax match PisoCtor "\<[A-Z][a-zA-Z0-9]*\>"
 syntax match PisoComment "(\*\(\_[^\*]\|\*\_[^)]\)\{-}\*)"

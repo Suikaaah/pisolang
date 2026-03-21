@@ -26,7 +26,7 @@ let 'delta_fwd c = match 'delta c with
 | (Final, t) <-> ((Final, t), True)
 in
 
-let 'delta_bwd c = match inv 'delta c with
+let 'delta_bwd c = match 'inv 'delta c with
 | (Init, t)  <-> ((Init, t), True)
 | (Next, t)  <-> ((Next, t), False)
 | (Flip, t)  <-> ((Flip, t), False)
@@ -73,17 +73,17 @@ in
 let 'rm_garb 'f1 'f2 i =
   let (o, g) = 'f1 i in
   let (o, o') = (o, o) in
-  let i = inv 'f1 (o, g) in
+  let i = 'inv 'f1 (o, g) in
   let (i', g) = 'f2 o' in
   let (i, i) = (i, i') in
-  inv 'f2 (i, g)
+  'inv 'f2 (i, g)
 in
 
-let 'compose 'g 'f x = 'g ('f x) in
+let 'compose 'g 'f x = 'f x |> 'g in
 
 let 'compute = 'rm_garb
-  ('compose 'clean_up ('iter 'delta_fwd))
-  ('compose 'clean_up ('iter 'delta_bwd))
+  ('iter 'delta_fwd |> 'compose 'clean_up)
+  ('iter 'delta_bwd |> 'compose 'clean_up)
 in
 
 let 'sem tape =

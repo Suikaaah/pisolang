@@ -5,11 +5,31 @@ type 'a option       = None | Some of 'a
 type ('l, 'r) either = Left of 'l | Right of 'r
 ;;
 
-let 'silly 'f 'g 'h 'i = 'i (case (x, y) <-> ('g y, inv 'h 'f x)) (inv 'h) in
+let rec 'len = case
+| []      <-> (0, [])
+| x :: xs <-> let (n, xs) = 'len xs in (S n, x :: xs)
+in
 
-let 'id1 x = x in
+let rec 'rev_aux = case
+| (l, (0, []))        <-> (l, (0, []))
+| (l, (S n, x :: xs)) <->
+  let (l, (n, xs)) = 'rev_aux (x :: l, (n, xs)) in
+  (l, (S n, xs))
+in
 
-let 'id2 'f = 'f in
+let 'rev l =
+  let (l, (n, [])) = 'rev_aux ([], 'len l) in
+  'inv 'len (n, l)
+in
 
-()
+let 'swap (x, y) = (y, x) in
+let 'mkinvl 'f x = 'f x |> 'swap |> 'inv 'f in
+let 'invl 'f =
+  'mkinvl begin case
+  | Left  x <-> (Some ('f x), None)
+  | Right x <-> (None, Some x)
+  end
+in
+
+Left [9; 3; 2] |> 'invl 'len |> 'invl 'len
 

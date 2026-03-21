@@ -30,8 +30,8 @@
     | psi :: tl -> fun omega -> IsoFun (psi, lambdas_of_params tl omega)
 %}
 
-%token EOF LPAREN RPAREN LBRACKET RBRACKET TIMES PIPE COMMA SEMICOLON CONS
-       ARROW BIARROW EQUAL UNIT LET IN FIX TYPE INV REC OF FUN CASE MATCH WITH
+%token EOF LPAREN RPAREN LBRACKET RBRACKET TIMES TRIANGLE PIPE COMMA SEMICOLON CONS
+       ARROW BIARROW EQUAL UNIT LET IN FIX TYPE REC OF FUN CASE MATCH WITH
 %token <int> NAT
 %token <string> TICKED LOWER UPPER
 
@@ -40,11 +40,11 @@
 %type <base> base_grouped base
 %type <variant> variant
 %type <pat> pat_grouped pat_almost pat
-%type <epat> epat_grouped epat_almost epat_cons epat
+%type <epat> epat_grouped epat_almost epat_cons epat_triangle epat
 %type <expr> expr expr_nocase
 %type <pat * expr> branch
-%type <iso> iso_grouped iso_almost iso
-%type <term> term_grouped term_almost term
+%type <iso> iso_grouped iso_almost iso_triangle iso
+%type <term> term_grouped term_almost term_cons term_triangle term
 %%
 
 list1_impl(separator, X):
@@ -62,7 +62,11 @@ list2(separator, X):
   | l = list2_impl(separator, X); { List2.of_list l }
 
 program:
-  | ts = typedef*; SEMICOLON; SEMICOLON; t = term; EOF; { (ts, t) }
+  | ts = typedef*; SEMICOLON; SEMICOLON; t = term; EOF;
+    {
+      let omega = IsoFun ("'f", IsoInv (IsoVar "'f")) in
+      (ts, TermIso { phi = "'inv"; omega; t })
+    }
 
 typedef:
   | TYPE; name = LOWER; EQUAL; PIPE?; variants = list1(PIPE, variant);
@@ -129,16 +133,18 @@ epat_cons:
   | ep_1 = epat_almost; CONS; ep_2 = epat_cons;
     { EPatCtorApp ("Cons", EPatTuple (List2.of_list [ep_1; ep_2])) }
 
-epat:
+epat_triangle:
   | ep = epat_cons; { ep }
+  | ep = epat_triangle; TRIANGLE; omega = iso_almost; { EPatIsoApp (omega, ep) }
+
+epat:
+  | ep = epat_triangle; { ep }
   | MATCH; e = epat; WITH; PIPE?; l = list1(PIPE, branch);
     { EPatIsoApp (IsoCase l, e) }
 
 expr:
-  | ep = epat_cons; { ExprEPat ep }
+  | ep = epat_triangle; { ExprEPat ep }
   | LET; p = pat; EQUAL; ep = epat; IN; e = expr;
-    { ExprLet { p; ep; e } }
-
   | LPAREN; LET; p = pat; EQUAL; ep = epat; IN; e = expr_nocase; RPAREN;
     { ExprLet { p; ep; e } }
 
@@ -157,11 +163,14 @@ iso_grouped:
 
 iso_almost:
   | omega = iso_grouped; { omega }
-  | INV; omega = iso_grouped; { IsoInv omega }
   | omega_1 = iso_almost; omega_2 = iso_grouped; { IsoApp (omega_1, omega_2) }
 
-iso:
+iso_triangle:
   | omega = iso_almost; { omega }
+  | omega_2 = iso_triangle; TRIANGLE; omega_1 = iso_almost; { IsoApp (omega_1, omega_2) }
+
+iso:
+  | omega = iso_triangle; { omega }
   | CASE; PIPE?; l = list1(PIPE, branch); { IsoCase l }
   | FIX; phi = TICKED; ARROW; omega = iso; { IsoFix (phi, omega) }
   | FUN; params = TICKED+; ARROW; omega = iso; { lambdas_of_params params omega }
@@ -181,11 +190,17 @@ term_almost:
   | c = UPPER; t = term_grouped; { TermCtorApp (c, t) }
   | omega = iso_almost; t = term_grouped; { TermIsoApp (omega, t) }
 
-term:
+term_cons:
   | t = term_almost; { t }
-  | t_1 = term_almost; CONS; t_2 = term;
+  | t_1 = term_almost; CONS; t_2 = term_cons;
     { TermCtorApp ("Cons", TermTuple (List2.of_list [t_1; t_2])) }
 
+term_triangle:
+  | t = term_cons; { t }
+  | t = term_triangle; TRIANGLE; omega = iso_almost; { TermIsoApp (omega, t) }
+
+term:
+  | t = term_triangle; { t }
   | LET; p = pat; EQUAL; t_1 = term; IN; t_2 = term; { TermLet { p; t_1; t_2 } }
   | LET; phi = TICKED; params = TICKED*; EQUAL; omega = iso; IN; t = term;
     { TermIso { phi; omega = lambdas_of_params params omega; t } }

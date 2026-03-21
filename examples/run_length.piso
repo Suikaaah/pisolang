@@ -32,9 +32,9 @@ let rec 'nat_eq = case
 | (S m, S n) <-> let (b, (m, n)) = 'nat_eq (m, n) in (b, (S m, S n))
 in
 
-let first = inv ('run_length 'nat_eq) [(2, 3); (1, 0); (5, 2)] in
+let first = [(2, 3); (1, 0); (5, 2)] |> 'inv ('run_length 'nat_eq)  in
 
-let second = ('run_length 'nat_eq) [3; 3; 3; 2] in
+let second = [3; 3; 3; 2] |> 'run_length 'nat_eq in
 
 (first, second)
 

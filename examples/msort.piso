@@ -6,7 +6,7 @@ type bool    = False | True
 let 'recover 'f i =
   let (o, g) = 'f i in
   let (o, o') = (o, o) in
-  (o, inv 'f (o', g))
+  (o, 'inv 'f (o', g))
 in
 
 let rec 'merge 'leq = case
@@ -39,7 +39,7 @@ in
 
 let 'rev xs =
   let (xs, (n, [])) = 'rev_aux ([], 'len xs) in
-  inv 'len (n, xs)
+  'inv 'len (n, xs)
 in
 
 let rec 'partition_aux = case
@@ -51,7 +51,7 @@ in
 
 let 'partition (xs, n) =
   let (xs, ys, n) = 'partition_aux ([], xs, n) in
-  ('rev (inv 'len (n, xs)), ys)
+  ('inv 'len (n, xs) |> 'rev, ys)
 in
 
 let rec 'halve = case
@@ -64,7 +64,7 @@ let 'split xs =
   let (n, xs) = 'len xs in
   let (m, n) = 'halve n in
   let (xs, ys) = 'partition (xs, m) in
-  (xs, inv 'len (n, ys))
+  (xs, 'inv 'len (n, ys))
 in
 
 let rec 'msort_aux 'leq xs =
@@ -75,10 +75,10 @@ let rec 'msort_aux 'leq xs =
     let (xs, gx) = 'msort_aux 'leq (x :: xs) in
     let (ys, gy) = 'msort_aux 'leq (y :: ys) in
     let (xs, g) = 'merge 'leq (xs, ys) in
-    (xs, g :: inv 'split (gx, gy))
+    (xs, g :: 'inv 'split (gx, gy))
 in
 
-let 'msort 'leq = 'recover ('msort_aux 'leq) in
+let 'msort 'leq = 'msort_aux 'leq |> 'recover in
 
 let rec 'nat_leq = case
 | (0, S n)   <-> (True, (0, S n))

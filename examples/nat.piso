@@ -46,9 +46,9 @@ in
 let rec 'fib = case
 | 0   <-> (1, 1)
 | S n <->
-  let (S (S m), n) = 'add ('fib n) in
+  let (S (S m), n) = 'fib n |> 'add in
   (n, S (S m))
 in
 
-('fib 9, inv 'fib (8, 13))
+('fib 9, 'inv 'fib (8, 13))
 
