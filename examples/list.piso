@@ -24,7 +24,7 @@ let rec 'rev_aux = case
   (l, (S n, xs))
 in
 
-let 'rev = case l <->
+let 'rev l =
   let (l, (n, [])) = 'rev_aux ([], 'len l) in
   inv 'len (n, l)
 in
@@ -60,12 +60,22 @@ let rec 'partition_aux = case
   (l, xs, S n)
 in
 
-let 'partition = case (r, n) <->
+let 'partition (r, n) =
   let (l, r, n) = 'partition_aux ([], r, n) in
   ('rev (inv 'len (n, l)), r)
 in
 
 let 'concat = inv 'partition in
+
+let rec 'init_aux 'f = case
+| (0, acc)   <-> (0, acc)
+| (S n, acc) <->
+  let (m, n) = (n, n) in
+  let (n, acc) = 'init_aux 'f (n, 'f m :: acc) in
+  (S n, acc)
+in
+
+let 'init 'f n = inv 'len ('init_aux 'f (n, [])) in
 
 (* 'add (m, n) = (m + n, n) *)
 let rec 'add = case
@@ -73,14 +83,7 @@ let rec 'add = case
 | (m, 0)   <-> (m, 0)
 in
 
-let 'sum = case l <-> 'foldl_map 'add (0, l) in
-
-let rec 'iota_aux = case
-| 0   <-> []
-| S n <-> let (n, n') = (n, n) in n :: 'iota_aux n'
-in
-
-let 'iota = case n <-> 'rev ('iota_aux n) in
+let 'sum l = 'foldl_map 'add (0, l) in
 
 let rec 'push_back = case
 | ([], y)      <-> [y]
@@ -89,5 +92,5 @@ let rec 'push_back = case
   x :: y :: xs
 in
 
-'double ('iota 5)
+'init (case x <-> (x, S x)) 8
 

@@ -19,15 +19,14 @@ let rec 'add = case
 | (m, S n) <-> let (m, n) = 'add (S m, n) in (m, S n)
 in
 
-let rec 'cantor_pairing = case x <->
-  let y = match x with
+let rec 'cantor_pairing x =
+  let y =
+    match x with
     | (S i, j) <-> Some (i, S j)
     | (0, S j) <-> Some (j, 0)
     | (0, 0)   <-> None
-  in begin match y with
-    | Some x <-> S ('cantor_pairing x)
-    | None   <-> 0
-  end
+  in
+  match y with Some x <-> S ('cantor_pairing x) | None <-> 0
 in
 
 let rec 'cmp = case
@@ -46,7 +45,7 @@ let rec 'halve = case
 in
 
 let rec 'fib = case
-| 0 <-> (1, 1)
+| 0   <-> (1, 1)
 | S n <->
   let (S (S m), n) = 'add ('fib n) in
   (n, S (S m))

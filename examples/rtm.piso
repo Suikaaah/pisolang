@@ -17,26 +17,22 @@ let 'delta = case
 | (Done, (l, B, r))       <-> (Final, (l, B, r))
 in
 
-let 'delta_fwd = case c <->
-  begin match 'delta c with
-    | (Init, t)  <-> ((Init, t), False)
-    | (Next, t)  <-> ((Next, t), False)
-    | (Flip, t)  <-> ((Flip, t), False)
-    | (Done, t)  <-> ((Done, t), False)
-    | (Back, t)  <-> ((Back, t), False)
-    | (Final, t) <-> ((Final, t), True)
-  end
+let 'delta_fwd c = match 'delta c with
+| (Init, t)  <-> ((Init, t), False)
+| (Next, t)  <-> ((Next, t), False)
+| (Flip, t)  <-> ((Flip, t), False)
+| (Done, t)  <-> ((Done, t), False)
+| (Back, t)  <-> ((Back, t), False)
+| (Final, t) <-> ((Final, t), True)
 in
 
-let 'delta_bwd = case c <->
-  begin match inv 'delta c with
-    | (Init, t)  <-> ((Init, t), True)
-    | (Next, t)  <-> ((Next, t), False)
-    | (Flip, t)  <-> ((Flip, t), False)
-    | (Done, t)  <-> ((Done, t), False)
-    | (Back, t)  <-> ((Back, t), False)
-    | (Final, t) <-> ((Final, t), False)
-  end
+let 'delta_bwd c = match inv 'delta c with
+| (Init, t)  <-> ((Init, t), True)
+| (Next, t)  <-> ((Next, t), False)
+| (Flip, t)  <-> ((Flip, t), False)
+| (Done, t)  <-> ((Done, t), False)
+| (Back, t)  <-> ((Back, t), False)
+| (Final, t) <-> ((Final, t), False)
 in
 
 let rec 'rm_blank = case
@@ -48,7 +44,7 @@ let rec 'rm_blank = case
 | A3 :: t <-> let (t, n)  = 'rm_blank t in (A3 :: t, n)
 in
 
-let 'clean_up = case ((x, (l, y, r)), g) <->
+let 'clean_up ((x, (l, y, r)), g) =
   let (l, n1) = 'rm_blank l in
   let (r, n2) = 'rm_blank r in
   ((x, (l, y, r)), (g, n1, n2))
@@ -59,23 +55,22 @@ let rec 'extend_if_empty = case
 | x :: xs <-> (x :: xs, False)
 in
 
-let 'extend = case (q, (l, s, r)) <->
+let 'extend (q, (l, s, r)) =
   let (l, bl) = 'extend_if_empty l in
   let (r, br) = 'extend_if_empty r in
   ((q, (l, s, r)), (bl, br))
 in
 
-let rec 'iter 'delta = case c <->
+let rec 'iter 'delta c =
   let (c, g) = 'extend c in
-  begin match ('delta c, g) with
-    | ((c, True), g) <-> (c, [(g, True)])
-    | ((c, False), g)  <->
-      let (c, gs) = 'iter 'delta c in
-      (c, (g, False) :: gs)
-  end
+  match ('delta c, g) with
+  | ((c, True), g) <-> (c, [(g, True)])
+  | ((c, False), g)  <->
+    let (c, gs) = 'iter 'delta c in
+    (c, (g, False) :: gs)
 in
 
-let 'rm_garb 'f1 'f2 = case i <->
+let 'rm_garb 'f1 'f2 i =
   let (o, g) = 'f1 i in
   let (o, o') = (o, o) in
   let i = inv 'f1 (o, g) in
@@ -84,16 +79,16 @@ let 'rm_garb 'f1 'f2 = case i <->
   inv 'f2 (i, g)
 in
 
-let 'compose 'g 'f = case x <-> 'g ('f x) in
+let 'compose 'g 'f x = 'g ('f x) in
 
 let 'compute = 'rm_garb
   ('compose 'clean_up ('iter 'delta_fwd))
   ('compose 'clean_up ('iter 'delta_bwd))
 in
 
-let 'sem = case tape <->
-  let (Final, ([], B, tape)) =
-    'compute (Init, ([], B, tape)) in tape
+let 'sem tape =
+  let (Final, ([], B, tape)) = 'compute (Init, ([], B, tape)) in
+  tape
 in
 
 'sem [A0; A0; A0; A1; A1; A0; A1; A0]

@@ -3,7 +3,7 @@ type 'a list = Nil (* [] *) | Cons (* :: *) of 'a * 'a list
 type bool    = False | True
 ;;
 
-let 'recover 'f = case i <->
+let 'recover 'f i =
   let (o, g) = 'f i in
   let (o, o') = (o, o) in
   (o, inv 'f (o', g))

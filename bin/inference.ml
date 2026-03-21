@@ -221,7 +221,7 @@ and infer_term ~map gen psi delta =
       let found =
         try IntMap.find c delta
         with _ ->
-          Format.sprintf "undefined constructor: %s" (IntMap.find c map)
+          Format.sprintf "undefined nullary constructor: %s" (IntMap.find c map)
           |> failwith
       in
       { ty = instantiate_base gen found; e_base = []; e_iso = [] }
@@ -229,7 +229,7 @@ and infer_term ~map gen psi delta =
       let found =
         try IntMap.find c psi
         with _ ->
-          Format.sprintf "undefined constructor: %s" (IntMap.find c map)
+          Format.sprintf "undefined unary constructor: %s" (IntMap.find c map)
           |> failwith
       in
       match instantiate_iso gen found with
