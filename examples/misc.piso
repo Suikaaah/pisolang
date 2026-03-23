@@ -1,35 +1,21 @@
 type nat             = Z (* 0 *) | S (* n *) of nat
 type 'a list         = Nil (* [] *) | Cons (* :: *) of 'a * 'a list
-type bool            = False | True
-type 'a option       = None | Some of 'a
 type ('l, 'r) either = Left of 'l | Right of 'r
 ;;
 
-let rec 'len = case
-| []      <-> (0, [])
-| x :: xs <-> let (n, xs) = 'len xs in (S n, x :: xs)
+let 'make_invl 'f = case
+| Left  x <-> Right ('f x)
+| Right x <-> Left  ('inv 'f x)
 in
 
-let rec 'rev_aux = case
-| (l, (0, []))        <-> (l, (0, []))
-| (l, (S n, x :: xs)) <->
-  let (l, (n, xs)) = 'rev_aux (x :: l, (n, xs)) in
-  (l, (S n, xs))
+let rec 'list_of_nat = case
+| 0   <-> []
+| S n <-> () :: 'list_of_nat n
 in
 
-let 'rev l =
-  let (l, (n, [])) = 'rev_aux ([], 'len l) in
-  'inv 'len (n, l)
-in
+let 'invl = 'make_invl 'list_of_nat in
 
-let 'swap (x, y) = (y, x) in
-let 'mkinvl 'f x = 'f x |> 'swap |> 'inv 'f in
-let 'invl 'f =
-  'mkinvl begin case
-  | Left  x <-> (Some ('f x), None)
-  | Right x <-> (None, Some x)
-  end
-in
+let r = Left 4 |> 'invl in
 
-Left [9; 3; 2] |> 'invl 'len |> 'invl 'len
+(r, 'invl r)
 

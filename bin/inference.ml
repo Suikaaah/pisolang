@@ -10,6 +10,8 @@ type 'a inferred = {
   e_iso : Types.iso eq list;
 }
 
+let first_generalization = ref true
+
 let subst_eq_base s =
   List.map begin function
       | EqBase (a, b) -> EqBase (Types.subst_base s a, Types.subst_base s b)
@@ -170,7 +172,14 @@ let generalize_iso ~map phi delta es v t =
   let delta' = subst_delta_bulk substs_base delta in
   let forall = find_generalizable_iso phi' delta' t' in
   let generalized = { forall; ty = t' } in
-  Format.printf "%s : \x1b[35m%a\x1b[0m\n" (Util.IntMap.find v map)
+  let name =
+    let name = Util.IntMap.find v map in
+    if !first_generalization then
+      let () = first_generalization := false in
+      "'inv (built-in)"
+    else name
+  in
+  Format.printf "%s : \x1b[35m%a\x1b[0m\n" name
     (Types.pp_iso' (Util.union ~weak:map ~strong:(Types.create_map_iso [ t' ])))
     (Types.push_inv t');
   Util.IntMap.add v generalized phi'

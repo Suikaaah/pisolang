@@ -44,7 +44,7 @@ in
 #### Output
 
 ```ocaml
-'inv : 'A -> ~'A
+'inv (built-in) : 'A -> ~'A
 'add : nat * nat <-> nat * nat
 
 (7, 4)
@@ -53,7 +53,7 @@ in
 
 - The results of type inference are printed upon generalizing the type of a function,
   followed by a calculated value and its type.
-- `'inv` is a built-in function to invert functions. Details are provided in "Inversion".
+- The details of the built-in function `'inv` are provided in "Inversion".
 - Type definitions and a term to evaluate are separated by a double-semicolon `;;`.
 - Variables bound to functions are named in lowercase starting with a tick `'`.
 - The keyword `case` initiates pattern matching just like `function` in OCaml.
