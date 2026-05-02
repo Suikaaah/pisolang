@@ -103,8 +103,8 @@ let rec unify ~map =
   let open Types in
   function
   | [] -> ([], [])
-  | EqBase e :: es -> begin
-      match e with
+  | EqBase e :: es ->
+      begin match e with
       | a, b when a = b -> unify ~map es
       | BaseProd la, BaseProd lb when List2.eq_length la lb ->
           let wrapped = List2.combine la lb |> List2.map (fun e -> EqBase e) in
@@ -127,9 +127,9 @@ let rec unify ~map =
           let map' = create_map_base [ a; b ] in
           let pp = Util.union ~weak:map ~strong:map' |> pp_base' in
           Format.asprintf "unable to unify `%a` and `%a`" pp a pp b |> failwith
-    end
-  | EqIso e :: es -> begin
-      match e with
+      end
+  | EqIso e :: es ->
+      begin match e with
       | t_1, t_2 when t_1 = t_2 -> unify ~map es
       | IsoArrow (t_11, t_12), IsoArrow (t_21, t_22) ->
           EqIso (t_11, t_21) :: EqIso (t_12, t_22) :: es |> unify ~map
@@ -153,7 +153,7 @@ let rec unify ~map =
           let pp = Util.union ~weak:map ~strong:map' |> pp_iso' in
           Format.asprintf "unable to unify `%a` and `%a`" pp t_1 pp t_2
           |> failwith
-    end
+      end
 
 let pat_gen gen p =
   let rec impl gen = function
@@ -222,7 +222,7 @@ and infer_term ~map gen psi delta =
       let found =
         try IntMap.find x delta
         with _ ->
-          Format.sprintf "undefined variable: %s" (IntMap.find x map)
+          Format.sprintf "undefined non-iso variable: %s" (IntMap.find x map)
           |> failwith
       in
       { ty = instantiate_base gen found; e_base = []; e_iso = [] }
@@ -379,7 +379,7 @@ and infer_iso ~map gen psi delta =
       let found =
         try Util.IntMap.find phi psi
         with _ ->
-          Format.sprintf "undefined variable: %s" (Util.IntMap.find phi map)
+          Format.sprintf "undefined iso variable: %s" (Util.IntMap.find phi map)
           |> failwith
       in
       { ty = instantiate_iso gen found; e_base = []; e_iso = [] }

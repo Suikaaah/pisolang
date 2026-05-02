@@ -16,10 +16,10 @@ iso rec merge leq = case
 | (x :: xs, y :: ys) <->
   let (xs, g :: g' :: gs) =
     match (leq (x, y), xs, ys) with
-    | ((True, (x, y)), xs, ys)  <->
+    | ((True, x, y), xs, ys)  <->
       let (merged, g) = merge leq (xs, y :: ys) in
       (x :: merged, False :: g)
-    | ((False, (x, y)), xs, ys) <->
+    | ((False, x, y), xs, ys) <->
       let (merged, g) = merge leq (x :: xs, ys) in
       (y :: merged, True :: g)
   in (xs, g :: g' :: gs)
@@ -61,8 +61,8 @@ iso rec halve = case
 in
 
 iso split (xs) =
-  let (n, xs) = len xs in
-  let (m, n) = halve n in
+  let (n, xs)  = len xs in
+  let (m, n)   = halve n in
   let (xs, ys) = partition (xs, m) in
   (xs, inv len (n, ys))
 in
@@ -72,8 +72,8 @@ iso rec msort_aux leq (xs) =
   | ([], [])           <-> ([], [])
   | ([x], [])          <-> ([x], [])
   | (x :: xs, y :: ys) <->
-    let (xs, gx) = msort_aux leq (x :: xs) in
-    let (ys, gy) = msort_aux leq (y :: ys) in
+    let (xs, gx) = x :: xs |> msort_aux leq in
+    let (ys, gy) = y :: ys |> msort_aux leq in
     let (xs, g) = merge leq (xs, ys) in
     (xs, g :: inv split (gx, gy))
 in
@@ -81,10 +81,10 @@ in
 iso msort leq = msort_aux leq |> recover in
 
 iso rec nat_leq = case
-| (0, S n)   <-> (True, (0, S n))
-| (S m, 0)   <-> (False, (S m, 0))
-| (0, 0)     <-> (True, (0, 0))
-| (S m, S n) <-> let (b, (m, n)) = nat_leq (m, n) in (b, (S m, S n))
+| (0, S n)   <-> (True, 0, S n)
+| (S m, 0)   <-> (False, S m, 0)
+| (0, 0)     <-> (True, 0, 0)
+| (S m, S n) <-> let (b, m, n) = nat_leq (m, n) in (b, S m, S n)
 in
 
 msort nat_leq [10; 5; 5; 1; 2; 9; 7; 8; 0; 4; 6; 5; 6]

@@ -64,8 +64,8 @@ in
 iso rec iter delta (c) =
   let (c, g) = extend c in
   match (delta c, g) with
-  | ((c, True), g) <-> (c, [(g, True)])
-  | ((c, False), g)  <->
+  | ((c, True), g)  <-> (c, [(g, True)])
+  | ((c, False), g) <->
     let (c, gs) = iter delta c in
     (c, (g, False) :: gs)
 in

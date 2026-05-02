@@ -8,8 +8,8 @@ iso rec len = case
 in
 
 iso rec map f = case
-| []     <-> []
-| h :: t <-> f h :: map f t
+| []      <-> []
+| x :: xs <-> f x :: map f xs
 in
 
 iso rec double = case
@@ -32,7 +32,7 @@ in
 iso rec foldl_map f = case
 | (acc, [])      <-> (acc, [])
 | (acc, x :: xs) <->
-  let (acc, x) = f (acc, x) in
+  let (acc, x)  = f (acc, x) in
   let (acc, xs) = foldl_map f (acc, xs) in
   (acc, x :: xs)
 in

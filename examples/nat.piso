@@ -10,7 +10,7 @@ type parity          = Even | Odd
 iso rec parity = case
 | 0       <-> (Even, 0)
 | 1       <-> (Odd, 1)
-| S (S x) <-> let (b, x) = parity x in (b, S (S x))
+| S (S n) <-> let (b, n) = parity n in (b, S (S n))
 in
 
 (* 'add (m, n) = (m + n, n) *)
@@ -24,7 +24,7 @@ iso rec cantor_pairing (x) =
     | (S i, j) <-> Some (i, S j)
     | (0, S j) <-> Some (j, 0)
     | (0, 0)   <-> None
-  with Some x <-> S (cantor_pairing x) | None <-> 0
+  with Some n <-> S (cantor_pairing n) | None <-> 0
 in
 
 iso rec cmp = case
