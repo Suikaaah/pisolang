@@ -26,11 +26,11 @@ rule read = parse
   | "[" { LBRACKET }
   | "]" { RBRACKET }
   | "*" { TIMES }
-  | "|>" { TRIANGLE }
   | "|" { PIPE }
   | "," { COMMA }
   | ";" { SEMICOLON }
   | "::" { CONS }
+  | "|>" { TRIANGLE }
   | "->" { ARROW }
   | "<->" { BIARROW }
   | "=" { EQUAL }
@@ -38,6 +38,7 @@ rule read = parse
   | "end" { RPAREN }
   | "unit" { UNIT }
   | "let" { LET }
+  | "iso" { ISO }
   | "in" { IN }
   | "fix" { FIX }
   | "type" { TYPE }

@@ -3,19 +3,19 @@ type 'a list         = Nil (* [] *) | Cons (* :: *) of 'a * 'a list
 type ('l, 'r) either = Left of 'l | Right of 'r
 ;;
 
-let 'make_invl 'f = case
-| Left  x <-> Right ('f x)
-| Right x <-> Left  ('inv 'f x)
+iso make_invl f = case
+| Left  x <-> Right (f x)
+| Right x <-> Left  (inv f x)
 in
 
-let rec 'list_of_nat = case
+iso rec list_of_nat = case
 | 0   <-> []
-| S n <-> () :: 'list_of_nat n
+| S n <-> () :: list_of_nat n
 in
 
-let 'invl = 'make_invl 'list_of_nat in
+iso invl = make_invl list_of_nat in
 
-let r = Left 4 |> 'invl in
+let r = Left 4 |> invl in
 
-(r, 'invl r)
+(r, invl r)
 

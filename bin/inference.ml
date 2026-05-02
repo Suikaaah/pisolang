@@ -176,7 +176,7 @@ let generalize_iso ~map phi delta es v t =
     let name = Util.IntMap.find v map in
     if !first_generalization then
       let () = first_generalization := false in
-      "'inv (built-in)"
+      "inv (built-in)"
     else name
   in
   Format.printf "%s : \x1b[35m%a\x1b[0m\n" name
