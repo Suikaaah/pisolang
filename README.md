@@ -14,7 +14,7 @@ PisoLang's main objective is to make reversible programming more accessible for 
 | Type safety - progress         | Never (due to partiality)               |
 
 *: For any well-typed function `f`,
-   `f v` $\rightarrow^\*$ `v'` if and only if `('inv f) v'` $\rightarrow^\*$ `v`.
+   `f v` $\rightarrow^\*$ `v'` if and only if `(inv f) v'` $\rightarrow^\*$ `v`.
 
 ## Build / Run
 
@@ -22,8 +22,8 @@ PisoLang's main objective is to make reversible programming more accessible for 
 
 ## Brief Introduction
 
-Here is an example featuring the reversible function `'add`,
-which adds two numbers while preserving what has been added, i.e., `'add (m, n) = (m + n, n)`.
+Here is an example featuring the reversible function `add`,
+which adds two numbers while preserving what has been added, i.e., `add (m, n) = (m + n, n)`.
 Note that numeric literals are interpreted in the following way:
 `0 := Z`, `1 := S Z`, `2 := S (S Z)`, ...
 
@@ -33,19 +33,19 @@ Note that numeric literals are interpreted in the following way:
 type nat = Z | S of nat
 ;;
 
-let rec 'add = case
+iso rec add = case
 | (m, 0)   <-> (m, 0)
-| (m, S n) <-> let (m', n') = 'add (S m, n) in (m', S n')
+| (m, S n) <-> let (m', n') = add (S m, n) in (m', S n')
 in
 
-'add (3, 4)
+add (3, 4)
 ```
 
 #### Output
 
 ```ocaml
-'inv (built-in) : 'A -> ~'A
-'add : nat * nat <-> nat * nat
+inv (built-in) : 'A -> ~'A
+add : nat * nat <-> nat * nat
 
 (7, 4)
 - : nat * nat
@@ -53,9 +53,8 @@ in
 
 - The results of type inference are printed upon generalizing the type of a function,
   followed by a calculated value and its type.
-- The details of the built-in function `'inv` are provided in "Inversion".
+- The details of the built-in function `inv` are provided in "Inversion".
 - Type definitions and a term to evaluate are separated by a double-semicolon `;;`.
-- Variables bound to functions are named in lowercase starting with a tick `'`.
 - The keyword `case` initiates pattern matching just like `function` in OCaml.
 
 #### Restrictions
@@ -127,6 +126,12 @@ by a modified version of Algorithm W.
 #### Example
 
 ```ocaml
+type nat       = Z | S of nat
+type 'a list   = Nil | Cons of 'a * 'a list
+type bool      = False | True
+type 'a option = None | Some of 'a
+;;
+
 (* myunit : unit *)
 let myunit = () in
 
@@ -140,37 +145,41 @@ let mynone = None in
 let mylists = ([Some 0; mynone], [Some False; mynone]) in
 
 (* reversible function *)
-let 'not = case False <-> True | True <-> False in
+iso not = case False <-> True | True <-> False in
 
 (* higher-order function *)
-let 'map_option = fun 'f -> case
+iso map_option = fun f -> case
 | None   <-> None
-| Some x <-> Some ('f x)
+| Some x <-> Some (f x)
 in
 
 (* same but with syntactic sugar *)
-let 'map_option 'f = case
+iso map_option f = case
 | None   <-> None
-| Some x <-> Some ('f x)
+| Some x <-> Some (f x)
 in
 
-let 'map_fst 'f = case (x, y) <-> ('f x, y) in
+iso map_fst f = case (x, y) <-> (f x, y) in
 
 (* same but with syntactic sugar *)
-let 'map_fst 'f (x, y) = ('f x, y) in
+iso map_fst f (x, y) = (f x, y) in
+
+(* Note: you sometimes need to be explicit like the following:
+   (iso f  g  = ...) := (iso f = fun  g  -> ...)
+   (iso f (g) = ...) := (iso f = case g <-> ...) *)
 
 (* recursive function using the keyword `rec` *)
-(* 'len l = (l, <length of l>) *)
-let rec 'len = case
+(* len l = (l, <length of l>) *)
+iso rec len = case
 | []      <-> ([], 0)
-| x :: xs <-> let (l, n) = 'len xs in (x :: l, S n)
+| x :: xs <-> let (l, n) = len xs in (x :: l, S n)
 in
 (* Note: as you can imagine, it is impossible to
    have an injective function that only produces the length.
    This fact corresponds to the linear use of variables. *)
 
 (* ([True; False; False], 3) : bool list * nat *)
-'len [True; False; False]
+len [True; False; False]
 ```
 
 ## Inversion
@@ -183,15 +192,15 @@ The inverse type of an iso type `'A` is denoted by `~'A`, which is defined as fo
 
 #### Terms
 
-Any well-typed function can be inverted using the built-in function `'inv`.
-`'inv f` evaluates to `f^(-1)`.
+Any well-typed function can be inverted using the built-in function `inv`.
+`inv f` evaluates to `f^(-1)`.
 
 #### Definition of `f^(-1)`
 
 ```
-                      ('x)^(-1)    :=  'x
-             (fun 'x -> f)^(-1)    :=  fun 'x -> f^(-1)
-             (fix 'x -> f)^(-1)    :=  fix 'x -> f^(-1)
+                         x^(-1)    :=  x
+              (fun x -> f)^(-1)    :=  fun x -> f^(-1)
+              (fix x -> f)^(-1)    :=  fix x -> f^(-1)
                      (f g)^(-1)    :=  f^(-1) g^(-1)
           (case | p1 <-> e1            case | (p1 <-> e1)^(-1)
                 | ...              :=       | ...
@@ -203,32 +212,45 @@ where (p <-> let p1 = f1 p'1 in        p' <-> let p'n = fn^(-1) pn in
              p')^(-1)                         p
 ```
 
-Fact: `f : 'A` if and only if `'inv f : ~'A`.
+Fact: `f : 'A` if and only if `inv f : ~'A`.
 
 #### Example
 
 ```ocaml
+type nat       = Z | S of nat
+type 'a list   = Nil | Cons of 'a * 'a list
+type bool      = False | True
+type 'a option = None | Some of 'a
+;;
+
 (* splits a list of pairs into two lists *)
-(* 'split : ('a * 'b) list <-> 'a list * 'b list *)
-let rec 'split = case
+(* split : ('a * 'b) list <-> 'a list * 'b list *)
+iso rec split = case
 | []           <-> ([], [])
 | (x, y) :: zs <->
-      let (xs, ys) = 'split zs in
+      let (xs, ys) = split zs in
       (x :: xs, y :: ys)
 in
 
-(* 'combine : 'a list * 'b list <-> ('a * 'b) list *)
-let 'combine = 'inv 'split in
+(* combine : 'a list * 'b list <-> ('a * 'b) list *)
+iso combine = inv split in
 
-let 'decr_if_some = 'inv ('map_option (case x <-> S x)) in
+iso map_option f = case
+| None   <-> None
+| Some x <-> Some (f x)
+in
+
+iso decr_if_some = inv (map_option (case x <-> S x)) in
 
 (* same but with syntactic sugar *)
-let 'decr_if_some = 'map_option (case x <-> S x) |> 'inv in
+iso decr_if_some = map_option (case x <-> S x) |> inv in
 
-let some_8 = 'decr_if_some (Some 9) in
+let some_8 = Some 9 |> decr_if_some in
 
 (* this one goes crazy *)
-let 'silly 'f0 'f1 'f2 'f3 = 'f3 (case (x, y) <-> ('f1 y, 'inv 'f2 'f0 x)) ('inv 'f2)
+iso silly f0 f1 f2 f3 = f3 (case (x, y) <-> (f1 y, inv f2 f0 x)) (inv f2) in
+
+()
 ```
 
 ## Duplication / Equality Check
@@ -239,16 +261,21 @@ and its inverse, i.e., an equality check. Both can be easily done via patterns.
 #### Example
 
 ```ocaml
-let 'dup x = (x, x) in
+type nat  = Z | S of nat
+type bool = False | True
+;;
+
+iso dup (x) = (x, x) in
 
 (* let (a, a) = (3, 4) would fail *)
 let (a, a) = (3, 3) in
 
-(* 'inv 'dup (2, 3) would fail *)
-let two = 'inv 'dup (2, 2) in
+(* inv dup (2, 3) would fail *)
+let two = inv dup (2, 2) in
 
 (* (3, (False, False), 2) *)
-(a, 'dup False, two)
+(a, dup False, two)
+
 ```
 
 Speaking of the linearity inside pattern matching,
@@ -270,6 +297,7 @@ case x <->
 - `nat.piso`: operations on natural numbers
 - `misc.piso`: random stuff
 - `tree.piso`: operations on trees
+- `find.piso`: O(n) search
 
 ## Contents of `vim`
 
