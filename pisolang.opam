@@ -14,7 +14,6 @@ depends: [
   "ocaml"
   "ocamllex"
   "menhir"
-  "ppx_deriving"
   "odoc" {with-doc}
 ]
 build: [

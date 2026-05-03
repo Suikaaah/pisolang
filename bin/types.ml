@@ -4,14 +4,12 @@ type base =
   | BaseVar of int
   | BaseProd of base List2.t
   | BaseApp of base List1.t * int
-[@@deriving show]
 
 type iso =
   | IsoBiArrow of base * base
   | IsoArrow of iso * iso
   | IsoVar of int
   | IsoInv of iso
-[@@deriving show]
 
 type 'a subst = 'a * int
 
@@ -83,7 +81,7 @@ let subst_iso_bulk substs_iso substs_base t =
   let m = List.fold_left (fun t s -> subst_iso s t) t substs_iso in
   List.fold_left (fun t s -> subst_base_iso s t) m substs_base
 
-let rec pp_base' map fmt =
+let rec pp_base map fmt =
   let f = Format.fprintf in
   let m x = Util.IntMap.find x map in
   function
@@ -93,30 +91,30 @@ let rec pp_base' map fmt =
   | BaseProd List2.(a :: aa) ->
       begin match a with
       | BaseUnit | BaseIdent _ | BaseVar _ | BaseApp _ ->
-          f fmt "%a" (pp_base' map) a
-      | BaseProd _ -> f fmt "(%a)" (pp_base' map) a
+          f fmt "%a" (pp_base map) a
+      | BaseProd _ -> f fmt "(%a)" (pp_base map) a
       end;
       List.iter
         begin fun a ->
           match a with
           | BaseUnit | BaseIdent _ | BaseVar _ | BaseApp _ ->
-              f fmt " * %a" (pp_base' map) a
-          | BaseProd _ -> f fmt " * (%a)" (pp_base' map) a
+              f fmt " * %a" (pp_base map) a
+          | BaseProd _ -> f fmt " * (%a)" (pp_base map) a
         end
         (List1.to_list aa)
-  | BaseApp (List1.(a :: aa), x) -> begin
-      match aa with
-      | [] -> begin
-          match a with
-          | BaseProd _ -> f fmt "(%a) %s" (pp_base' map) a (m x)
+  | BaseApp (List1.(a :: aa), x) ->
+      begin match aa with
+      | [] ->
+          begin match a with
+          | BaseProd _ -> f fmt "(%a) %s" (pp_base map) a (m x)
           | BaseUnit | BaseIdent _ | BaseVar _ | BaseApp _ ->
-              f fmt "%a %s" (pp_base' map) a (m x)
-        end
+              f fmt "%a %s" (pp_base map) a (m x)
+          end
       | _ ->
-          f fmt "(%a" (pp_base' map) a;
-          List.iter (f fmt ", %a" (pp_base' map)) aa;
+          f fmt "(%a" (pp_base map) a;
+          List.iter (f fmt ", %a" (pp_base map)) aa;
           f fmt ") %s" (m x)
-    end
+      end
 
 let create_map_base ts =
   let fv = List.map fv_base_list ts |> List.flatten in
@@ -129,26 +127,23 @@ let create_map_base ts =
     fv;
   Alpha.destruct_alphabet map
 
-let rec pp_iso' map fmt =
+let rec pp_iso map fmt =
   let f = Format.fprintf in
   let m x = Util.IntMap.find x map in
   function
-  | IsoBiArrow (a, b) -> f fmt "%a <-> %a" (pp_base' map) a (pp_base' map) b
+  | IsoBiArrow (a, b) -> f fmt "%a <-> %a" (pp_base map) a (pp_base map) b
   | IsoArrow (t_1, t_2) ->
       begin match t_1 with
-      | IsoBiArrow _ | IsoArrow _ -> f fmt "(%a)" (pp_iso' map) t_1
-      | IsoVar _ | IsoInv _ -> f fmt "%a" (pp_iso' map) t_1
+      | IsoArrow _ -> f fmt "(%a)" (pp_iso map) t_1
+      | IsoVar _ | IsoInv _ | IsoBiArrow _ -> f fmt "%a" (pp_iso map) t_1
       end;
-      begin match t_2 with
-      | IsoBiArrow _ -> f fmt " -> (%a)" (pp_iso' map) t_2
-      | IsoArrow _ | IsoVar _ | IsoInv _ -> f fmt " -> %a" (pp_iso' map) t_2
-      end
+      f fmt " -> %a" (pp_iso map) t_2
   | IsoVar v -> f fmt "'%s" (m v)
-  | IsoInv t -> begin
-      match t with
-      | IsoBiArrow _ | IsoArrow _ -> f fmt "~(%a)" (pp_iso' map) t
-      | IsoVar _ | IsoInv _ -> f fmt "~%a" (pp_iso' map) t
-    end
+  | IsoInv t ->
+      begin match t with
+      | IsoBiArrow _ | IsoArrow _ -> f fmt "~(%a)" (pp_iso map) t
+      | IsoVar _ | IsoInv _ -> f fmt "~%a" (pp_iso map) t
+      end
 
 let create_map_iso ts =
   let fv = List.map fv_iso_sep_list ts |> List.flatten in

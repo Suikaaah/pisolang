@@ -19,7 +19,7 @@
  (name pisolang)
  (synopsis "A short synopsis")
  (description "A longer description")
- (depends ocaml ocamllex menhir ppx_deriving)
+ (depends ocaml ocamllex menhir)
  (tags
   ("add topics" "to describe" your project)))
 

@@ -7,5 +7,4 @@
 (executable
  (public_name pisolang)
  (name main)
- (libraries pisolang)
- (preprocess (pps ppx_deriving.show)))
+ (libraries pisolang))

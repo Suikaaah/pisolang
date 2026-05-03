@@ -33,8 +33,8 @@ let rec eval_term = function
   | TermCtor c -> ValueCtor c
   | TermCtorApp (c, t) -> ValueApp (c, eval_term t)
   | TermTuple l -> ValueTuple (List2.map eval_term l)
-  | TermIsoApp (omega, t) -> begin
-      match eval_iso omega with
+  | TermIsoApp (omega, t) ->
+      begin match eval_iso omega with
       | IsoCase l ->
           let v = eval_term t in
           let finder (p, e) =
@@ -48,7 +48,7 @@ let rec eval_term = function
           | None -> failwith "stuck: IsoCase (no branch matched)"
           end
       | _ -> failwith "stuck: TermIsoApp (unreachable)"
-    end
+      end
   | TermLet { p; t_1; t_2 } -> begin
       let v = eval_term t_1 in
       match unify (p, v) with
@@ -60,9 +60,9 @@ let rec eval_term = function
 and eval_iso = function
   | (IsoVar _ | IsoFun _ | IsoCase _) as omega -> omega
   | IsoFix (phi, omega) as omega' -> subst_iso (omega', phi) omega |> eval_iso
-  | IsoApp (omega_1, omega_2) -> begin
-      match eval_iso omega_1 with
+  | IsoApp (omega_1, omega_2) ->
+      begin match eval_iso omega_1 with
       | IsoFun (phi, omega) -> subst_iso (omega_2, phi) omega |> eval_iso
       | _ -> failwith "stuck: IsoApp (unreachable)"
-    end
+      end
   | IsoInv omega -> invert omega |> eval_iso

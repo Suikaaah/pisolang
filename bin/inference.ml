@@ -125,7 +125,7 @@ let rec unify ~map =
           (substs_iso, s :: substs_base)
       | a, b ->
           let map' = create_map_base [ a; b ] in
-          let pp = Util.union ~weak:map ~strong:map' |> pp_base' in
+          let pp = Util.union ~weak:map ~strong:map' |> pp_base in
           Format.asprintf "unable to unify `%a` and `%a`" pp a pp b |> failwith
       end
   | EqIso e :: es ->
@@ -150,7 +150,7 @@ let rec unify ~map =
           (s :: substs_iso, substs_base)
       | t_1, t_2 ->
           let map' = create_map_iso [ t_1; t_2 ] in
-          let pp = Util.union ~weak:map ~strong:map' |> pp_iso' in
+          let pp = Util.union ~weak:map ~strong:map' |> pp_iso in
           Format.asprintf "unable to unify `%a` and `%a`" pp t_1 pp t_2
           |> failwith
       end
@@ -180,7 +180,7 @@ let generalize_iso ~map phi delta es v t =
     else name
   in
   Format.printf "%s : \x1b[35m%a\x1b[0m\n" name
-    (Types.pp_iso' (Util.union ~weak:map ~strong:(Types.create_map_iso [ t' ])))
+    (Types.pp_iso (Util.union ~weak:map ~strong:(Types.create_map_iso [ t' ])))
     (Types.push_inv t');
   Util.IntMap.add v generalized phi'
 

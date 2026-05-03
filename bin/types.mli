@@ -4,14 +4,12 @@ type base =
   | BaseVar of int
   | BaseProd of base List2.t
   | BaseApp of base List1.t * int
-[@@deriving show]
 
 type iso =
   | IsoBiArrow of base * base
   | IsoArrow of iso * iso
   | IsoVar of int
   | IsoInv of iso
-[@@deriving show]
 
 type 'a subst = 'a * int
 
@@ -25,8 +23,8 @@ val subst_iso : iso subst -> iso -> iso
 val subst_base_iso : base subst -> iso -> iso
 val subst_base_bulk : base subst list -> base -> base
 val subst_iso_bulk : iso subst list -> base subst list -> iso -> iso
-val pp_base' : string Util.IntMap.t -> Format.formatter -> base -> unit
-val pp_iso' : string Util.IntMap.t -> Format.formatter -> iso -> unit
+val pp_base : string Util.IntMap.t -> Format.formatter -> base -> unit
+val pp_iso : string Util.IntMap.t -> Format.formatter -> iso -> unit
 val create_map_base : base list -> string Util.IntMap.t
 val create_map_iso : iso list -> string Util.IntMap.t
 val push_inv : iso -> iso

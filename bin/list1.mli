@@ -1,4 +1,4 @@
-type 'a t = ( :: ) of 'a * 'a list [@@deriving show]
+type 'a t = ( :: ) of 'a * 'a list
 
 val map : ('a -> 'b) -> 'a t -> 'b t
 val fold_left : ('acc -> 'a -> 'acc) -> 'acc -> 'a t -> 'acc

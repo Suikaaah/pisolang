@@ -1,4 +1,4 @@
-type 'a t = ( :: ) of 'a * 'a list [@@deriving show]
+type 'a t = ( :: ) of 'a * 'a list
 
 let map f (x :: xs) = f x :: List.map f xs
 let fold_left f a (x :: xs) = List.fold_left f (f a x) xs

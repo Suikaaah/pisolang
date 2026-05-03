@@ -14,7 +14,7 @@ PisoLang's main objective is to make reversible programming more accessible for 
 | Type safety - progress         | Never (due to partiality)               |
 
 *: For any well-typed function `f`,
-   `f v` $\rightarrow^\*$ `v'` if and only if `(inv f) v'` $\rightarrow^\*$ `v`.
+   `f v` $\rightarrow^\*$ `v'` if and only if `inv f v'` $\rightarrow^\*$ `v`.
 
 ## Build / Run
 
