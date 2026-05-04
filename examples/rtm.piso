@@ -79,11 +79,9 @@ iso rm_garb f1 f2 (i) =
   inv f2 (i, g)
 in
 
-iso compose g f (x) = f x |> g in
-
 iso compute = rm_garb
-  (iter delta_fwd |> compose clean_up)
-  (iter delta_bwd |> compose clean_up)
+  (clean_up . iter delta_fwd)
+  (clean_up . iter delta_bwd)
 in
 
 iso sem (tape) =

@@ -287,6 +287,18 @@ case x <->
     (a, b) (* (a, b, x) would fail because x is already used *)
 ```
 
+## Miscellaneous
+
+```ocaml
+(* in order from highest precedence to lowest precedence *)
+(* right-associative *)
+f . g := case x <-> f (g x)
+(* left-associative *)
+f * g := case (x, y) <-> (f x, g y)
+(* left-associative *)
+f + g := case Left x <-> Left (f x) | Right x <-> Right (g x)
+```
+
 ## Contents of `examples`
 
 - `rtm.piso`: a reversible Turing machine that computes bitwise negations

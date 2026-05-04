@@ -1,8 +1,9 @@
-type nat       = Z (* 0 *) | S (* n *) of nat
-type 'a list   = Nil (* [] *) | Cons (* :: *) of 'a * 'a list
-type bool      = False | True
-type 'a signed = Neg of 'a | Pos of 'a
+type nat     = Z (* 0 *) | S (* n *) of nat
+type 'a list = Nil (* [] *) | Cons (* :: *) of 'a * 'a list
+type bool    = False | True
 ;;
+
+iso id (x) = x in
 
 iso rec map f = case
 | []      <-> []
@@ -10,22 +11,18 @@ iso rec map f = case
 in
 
 iso rec or = case
-| []          <-> (False, [])
-| Pos x :: xs <-> (True, Pos x :: xs)
-| Neg x :: xs <-> let (b, xs) = or xs in (b, Neg x :: xs)
+| []               <-> (False, [])
+| (True, x)  :: xs <-> (True, (True, x) :: xs)
+| (False, x) :: xs <-> let (b, xs) = or xs in (b, (False, x) :: xs)
 in
 
-iso find f (xs) =
-  let xs = map f xs in
-  let (b, xs) = or xs in
-  (b, map (inv f) xs)
+iso find f = (id * map (inv f)) . or . map f in
+
+iso is_one = case
+| 0       <-> (False, 0)
+| 1       <-> (True, 1)
+| S (S n) <-> (False, S (S n))
 in
 
-iso finder = case
-| 0       <-> Neg 0
-| 1       <-> Pos 1
-| S (S n) <-> Neg (S (S n))
-in
-
-find finder [3; 9; 0; 1; 5; 4; 4]
+find is_one [3; 9; 0; 1; 5; 4; 4]
 

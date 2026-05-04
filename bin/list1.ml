@@ -1,5 +1,6 @@
 type 'a t = ( :: ) of 'a * 'a list
 
+let singleton x = x :: []
 let map f (x :: xs) = f x :: List.map f xs
 let fold_left f a (x :: xs) = List.fold_left f (f a x) xs
 let fold_right f (x :: xs) a = f x (List.fold_right f xs a)

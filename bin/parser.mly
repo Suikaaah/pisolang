@@ -42,10 +42,32 @@
   let rec epat_of_amb = function
     | AmbVar x -> EPatVar x
     | AmbApp (omega, a) -> EPatIsoApp (omega, epat_of_amb a)
+
+  let make_dot omega_1 omega_2 =
+    let p = PatVar "x" in
+    let ep = EPatIsoApp (omega_1, EPatIsoApp (omega_2, EPatVar "x")) in
+    let e = ExprEPat ep in
+    IsoCase (List1.singleton (p, e))
+
+  let make_times omega_1 omega_2 =
+    let p = PatTuple (List2.of_list [PatVar "x"; PatVar "y"]) in
+    let ep = EPatTuple (List2.of_list [
+      EPatIsoApp (omega_1, EPatVar "x"); EPatIsoApp (omega_2, EPatVar "y")]) in
+    let e = ExprEPat ep in
+    IsoCase (List1.singleton (p, e))
+
+  let make_plus omega_1 omega_2 =
+    let pl = PatApp ("Left", PatVar "x") in
+    let pr = PatApp ("Right", PatVar "x") in
+    let epl = EPatCtorApp ("Left", EPatIsoApp (omega_1, EPatVar "x")) in
+    let epr = EPatCtorApp ("Right", EPatIsoApp (omega_2, EPatVar "x")) in
+    let el = ExprEPat epl in
+    let er = ExprEPat epr in
+    IsoCase (List1.of_list [(pl, el); (pr, er)])
 %}
 
-%token EOF LPAREN RPAREN LBRACKET RBRACKET TIMES PIPE COMMA SEMICOLON CONS TRIANGLE
-       ARROW BIARROW EQUAL UNIT LET ISO IN FIX TYPE REC OF FUN CASE MATCH WITH
+%token EOF LPAREN RPAREN LBRACKET RBRACKET DOT TIMES PLUS PIPE COMMA SEMICOLON CONS
+       TRIANGLE ARROW BIARROW EQUAL UNIT LET ISO IN FIX TYPE REC OF FUN CASE MATCH WITH
 %token <int> NAT
 %token <string> TICKED LOWER UPPER
 
@@ -58,7 +80,7 @@
 %type <expr> expr expr_nocase
 %type <pat * expr> branch
 %type <ambiguous> ambiguous_grouped ambiguous
-%type <iso> iso_grouped iso_almost iso_triangle iso_top iso
+%type <iso> iso_grouped iso_almost iso_dot iso_times iso_plus iso_triangle iso_top iso
 %type <term> term_grouped term_almost term_cons term_triangle term_top term
 %%
 
@@ -166,7 +188,7 @@ epat_cons:
 
 epat_triangle:
   | ep = epat_cons; { ep }
-  | ep = epat_triangle; TRIANGLE; omega = iso_almost; { EPatIsoApp (omega, ep) }
+  | ep = epat_triangle; TRIANGLE; omega = iso_plus; { EPatIsoApp (omega, ep) }
   | ep = epat_triangle; TRIANGLE; omega = ambiguous_almost; { EPatIsoApp (iso_of_amb omega, ep) }
 
 epat_top:
@@ -206,7 +228,7 @@ ambiguous_almost:
 ambiguous:
   | a = ambiguous_almost; { a }
   | b = ambiguous; TRIANGLE; a = ambiguous_almost; { AmbApp (iso_of_amb a, b) }
-  | a = ambiguous; TRIANGLE; omega = iso_almost; { AmbApp (omega, a) }
+  | a = ambiguous; TRIANGLE; omega = iso_plus; { AmbApp (omega, a) }
 
 iso_grouped:
   | LPAREN; omega = iso_top; RPAREN; { omega }
@@ -216,9 +238,51 @@ iso_almost:
   | omega_1 = iso_almost; omega_2 = iso_grouped; { IsoApp (omega_1, omega_2) }
   | omega_1 = ambiguous_almost; omega_2 = iso_grouped; { IsoApp (iso_of_amb omega_1, omega_2) }
 
-iso_triangle:
+iso_dot:
   | omega = iso_almost; { omega }
-  | omega_2 = iso_triangle; TRIANGLE; omega_1 = iso_almost; { IsoApp (omega_1, omega_2) }
+  | omega_1 = iso_almost; DOT; omega_2 = iso_dot;
+    { make_dot omega_1 omega_2 }
+
+  | omega_1 = iso_almost; DOT; omega_2 = ambiguous_almost;
+    { make_dot omega_1 (iso_of_amb omega_2) }
+
+  | omega_1 = ambiguous_almost; DOT; omega_2 = iso_dot;
+    { make_dot (iso_of_amb omega_1) omega_2 }
+
+  | omega_1 = ambiguous_almost; DOT; omega_2 = ambiguous_almost;
+    { make_dot (iso_of_amb omega_1) (iso_of_amb omega_2) }
+
+iso_times:
+  | omega = iso_dot; { omega }
+  | omega_1 = iso_times; TIMES; omega_2 = iso_dot;
+    { make_times omega_1 omega_2 }
+
+  | omega_1 = iso_times; TIMES; omega_2 = ambiguous_almost;
+    { make_times omega_1 (iso_of_amb omega_2) }
+
+  | omega_1 = ambiguous_almost; TIMES; omega_2 = iso_dot;
+    { make_times (iso_of_amb omega_1) omega_2 }
+
+  | omega_1 = ambiguous_almost; TIMES; omega_2 = ambiguous_almost;
+    { make_times (iso_of_amb omega_1) (iso_of_amb omega_2) }
+
+iso_plus:
+  | omega = iso_times; { omega }
+  | omega_1 = iso_plus; PLUS; omega_2 = iso_times;
+    { make_plus omega_1 omega_2 }
+
+  | omega_1 = iso_plus; PLUS; omega_2 = ambiguous_almost;
+    { make_plus omega_1 (iso_of_amb omega_2) }
+
+  | omega_1 = ambiguous_almost; PLUS; omega_2 = iso_times;
+    { make_plus (iso_of_amb omega_1) omega_2 }
+
+  | omega_1 = ambiguous_almost; PLUS; omega_2 = ambiguous_almost;
+    { make_plus (iso_of_amb omega_1) (iso_of_amb omega_2) }
+
+iso_triangle:
+  | omega = iso_plus; { omega }
+  | omega_2 = iso_triangle; TRIANGLE; omega_1 = iso_plus; { IsoApp (omega_1, omega_2) }
   | omega_2 = iso_triangle; TRIANGLE; omega_1 = ambiguous_almost; { IsoApp (iso_of_amb omega_1, omega_2) }
 
 iso_top:
@@ -260,7 +324,7 @@ term_cons:
 
 term_triangle:
   | t = term_cons; { t }
-  | t = term_triangle; TRIANGLE; omega = iso_almost; { TermIsoApp (omega, t) }
+  | t = term_triangle; TRIANGLE; omega = iso_plus; { TermIsoApp (omega, t) }
   | t = term_triangle; TRIANGLE; omega = ambiguous_almost; { TermIsoApp (iso_of_amb omega, t) }
 
 term_top:

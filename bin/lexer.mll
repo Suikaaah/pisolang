@@ -25,7 +25,9 @@ rule read = parse
   | ")" { RPAREN }
   | "[" { LBRACKET }
   | "]" { RBRACKET }
+  | "." { DOT }
   | "*" { TIMES }
+  | "+" { PLUS }
   | "|" { PIPE }
   | "," { COMMA }
   | ";" { SEMICOLON }
