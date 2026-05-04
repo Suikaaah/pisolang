@@ -2,6 +2,7 @@ type 'a t = ( :: ) of 'a * 'a list
 
 val singleton : 'a -> 'a t
 val map : ('a -> 'b) -> 'a t -> 'b t
+val mapi : (int -> 'a -> 'b) -> 'a t -> 'b t
 val fold_left : ('acc -> 'a -> 'acc) -> 'acc -> 'a t -> 'acc
 val fold_right : ('a -> 'acc -> 'acc) -> 'a t -> 'acc -> 'acc
 val to_list : 'a t -> 'a list

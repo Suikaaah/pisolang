@@ -2,7 +2,9 @@
 
 Piso (pie-so) Lang is a reversible functional programming language based on
 https://arxiv.org/abs/2309.12151 [Chardonnet et al. '24].
-PisoLang's main objective is to make reversible programming more accessible for all users.
+Our main objective is to make reversible programming more accessible for all users.
+PisoLang is designed to resemble OCaml, while being equipped with the built-in function
+`inv : 'A -> ~'A` that _inverts_ any function.
 
 | Objective                      | Status                                  |
 | :-:                            | :-:                                     |
@@ -18,9 +20,9 @@ PisoLang's main objective is to make reversible programming more accessible for 
 
 ## Build / Run
 
-`dune exec pisolang -- example/nat.piso`
+`dune exec pisolang -- examples/nat.piso`
 
-## Brief Introduction
+## Introduction
 
 Here is an example featuring the reversible function `add`,
 which adds two numbers while preserving what has been added, i.e., `add (m, n) = (m + n, n)`.
@@ -51,8 +53,7 @@ add : nat * nat <-> nat * nat
 - : nat * nat
 ```
 
-- The results of type inference are printed upon generalizing the type of a function,
-  followed by a calculated value and its type.
+- The inferred type is printed upon generalizing a function.
 - The details of the built-in function `inv` are provided in "Inversion".
 - Type definitions and a term to evaluate are separated by a double-semicolon `;;`.
 - The keyword `case` initiates pattern matching just like `function` in OCaml.
@@ -103,7 +104,7 @@ type 'a option = None | Some of 'a
 (* type with variables *)
 type ('l, 'r) either = Left of 'l | Right of 'r
 (* Note: variables must be wrapped in a tuple because
-   the type would be no longer first-order otherwise. *)
+   the type would no longer be first-order otherwise. *)
 ```
 
 ## Terms and _Isos_
@@ -291,10 +292,8 @@ case x <->
 
 ```ocaml
 (* in order from highest precedence to lowest precedence *)
-(* right-associative *)
-f . g := case x <-> f (g x)
-(* left-associative *)
-f * g := case (x, y) <-> (f x, g y)
+f_1 . ... . f_n := case x <-> f_1 (... (f_n x))
+f_1 * ... * f_n := case (x_1, ..., x_n) <-> (f_1 x_1, ..., f_n x_n)
 (* left-associative *)
 f + g := case Left x <-> Left (f x) | Right x <-> Right (g x)
 ```
@@ -309,10 +308,10 @@ f + g := case Left x <-> Left (f x) | Right x <-> Right (g x)
 - `nat.piso`: operations on natural numbers
 - `misc.piso`: random stuff
 - `tree.piso`: operations on trees
-- `find.piso`: O(n) search
+- `exists.piso`: O(n) search
 
 ## Contents of `vim`
 
 - `syntax/piso.vim`: syntax highlighting
-- `ftdetect/piso.vim`: file for vim to recognize `.piso` file extension
+- `ftdetect/piso.vim`: file for vim to recognize the `.piso` file extension
 

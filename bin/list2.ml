@@ -1,6 +1,7 @@
 type 'a t = ( :: ) of 'a * 'a List1.t
 
 let map f (x :: xs) = f x :: List1.map f xs
+let mapi f (x :: xs) = f 0 x :: List1.mapi (fun i -> i + 1 |> f) xs
 let fold_left f a (x :: xs) = List1.fold_left f (f a x) xs
 let fold_right f (x :: xs) a = f x (List1.fold_right f xs a)
 let to_list (x :: xs) = List.(x :: List1.to_list xs)

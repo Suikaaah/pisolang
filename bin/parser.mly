@@ -43,16 +43,15 @@
     | AmbVar x -> EPatVar x
     | AmbApp (omega, a) -> EPatIsoApp (omega, epat_of_amb a)
 
-  let make_dot omega_1 omega_2 =
+  let make_dot l =
     let p = PatVar "x" in
-    let ep = EPatIsoApp (omega_1, EPatIsoApp (omega_2, EPatVar "x")) in
+    let ep = List2.fold_right (fun omega acc -> EPatIsoApp (omega, acc)) l (EPatVar "x") in
     let e = ExprEPat ep in
     IsoCase (List1.singleton (p, e))
 
-  let make_times omega_1 omega_2 =
-    let p = PatTuple (List2.of_list [PatVar "x"; PatVar "y"]) in
-    let ep = EPatTuple (List2.of_list [
-      EPatIsoApp (omega_1, EPatVar "x"); EPatIsoApp (omega_2, EPatVar "y")]) in
+  let make_times l =
+    let p = PatTuple (List2.mapi (fun i _ -> PatVar (Util.alphabet i)) l) in
+    let ep = EPatTuple (List2.mapi (fun i omega -> EPatIsoApp (omega, EPatVar (Util.alphabet i))) l) in
     let e = ExprEPat ep in
     IsoCase (List1.singleton (p, e))
 
@@ -75,13 +74,14 @@
 %type <typedef> typedef
 %type <base> base_grouped base
 %type <variant> variant
-%type <pat> pat_grouped pat_almost pat pat_grouped_novar
-%type <epat> epat_grouped epat_almost epat_cons epat_triangle epat_top epat
+%type <pat> pat_grouped_novar pat_grouped pat_app pat
+%type <ambiguous> ambiguous_grouped ambiguous_app ambiguous
+%type <epat> epat_grouped epat_app epat_cons epat_triangle epat_top epat
 %type <expr> expr expr_nocase
 %type <pat * expr> branch
-%type <ambiguous> ambiguous_grouped ambiguous
-%type <iso> iso_grouped iso_almost iso_dot iso_times iso_plus iso_triangle iso_top iso
-%type <term> term_grouped term_almost term_cons term_triangle term_top term
+%type <iso> iso_grouped iso_app iso_app_or_ambiguous_app iso_dot
+            iso_dot_or_ambiguous_app iso_times iso_plus iso_triangle iso_top iso
+%type <term> term_grouped term_app term_cons term_triangle term_top term
 %%
 
 list1_impl(separator, X):
@@ -151,13 +151,27 @@ pat_grouped:
   | LBRACKET; RBRACKET; { PatCtor "Nil" }
   | LBRACKET; ps = list1(SEMICOLON, pat); RBRACKET; { list_of_ps ps }
 
-pat_almost:
+pat_app:
   | p = pat_grouped; { p }
   | c = UPPER; p = pat_grouped; { PatApp (c, p) }
 
 pat:
-  | p = pat_almost; { p }
-  | p_1 = pat_almost; CONS; p_2 = pat; { PatApp ("Cons", PatTuple (List2.of_list [p_1; p_2])) }
+  | p = pat_app; { p }
+  | p_1 = pat_app; CONS; p_2 = pat; { PatApp ("Cons", PatTuple (List2.of_list [p_1; p_2])) }
+
+ambiguous_grouped:
+  | x = LOWER; { AmbVar x }
+  | LPAREN; a = ambiguous; RPAREN; { a }
+
+ambiguous_app:
+  | a = ambiguous_grouped; { a }
+  | a = ambiguous_app; b = ambiguous_grouped; { AmbApp (iso_of_amb a, b) }
+  | omega = iso_app; a = ambiguous_grouped; { AmbApp (omega, a) }
+
+ambiguous:
+  | a = ambiguous_app; { a }
+  | b = ambiguous; TRIANGLE; a = ambiguous_app; { AmbApp (iso_of_amb a, b) }
+  | a = ambiguous; TRIANGLE; omega = iso_plus; { AmbApp (omega, a) }
 
 epat_grouped:
   | LPAREN; ep = epat_top; RPAREN; { ep }
@@ -168,28 +182,28 @@ epat_grouped:
   | LBRACKET; RBRACKET; { EPatCtor "Nil" }
   | LBRACKET; eps = list1(SEMICOLON, epat); RBRACKET; { list_of_eps eps }
 
-epat_almost:
+epat_app:
   | ep = epat_grouped; { ep }
   | c = UPPER; ep = epat_grouped; { EPatCtorApp (c, ep) }
   | c = UPPER; ep = ambiguous_grouped; { EPatCtorApp (c, epat_of_amb ep) }
-  | omega = iso_almost; ep = epat_grouped; { EPatIsoApp (omega, ep) }
-  | omega = ambiguous_almost; ep = epat_grouped; { EPatIsoApp (iso_of_amb omega, ep) }
+  | omega = iso_app; ep = epat_grouped; { EPatIsoApp (omega, ep) }
+  | omega = ambiguous_app; ep = epat_grouped; { EPatIsoApp (iso_of_amb omega, ep) }
 
 epat_cons:
-  | ep = epat_almost; { ep }
-  | ep_1 = epat_almost; CONS; ep_2 = epat_cons;
+  | ep = epat_app; { ep }
+  | ep_1 = epat_app; CONS; ep_2 = epat_cons;
     { EPatCtorApp ("Cons", EPatTuple (List2.of_list [ep_1; ep_2])) }
-  | ep_1 = epat_almost; CONS; ep_2 = ambiguous_almost;
+  | ep_1 = epat_app; CONS; ep_2 = ambiguous_app;
     { EPatCtorApp ("Cons", EPatTuple (List2.of_list [ep_1; epat_of_amb ep_2])) }
-  | ep_1 = ambiguous_almost; CONS; ep_2 = epat_cons;
+  | ep_1 = ambiguous_app; CONS; ep_2 = epat_cons;
     { EPatCtorApp ("Cons", EPatTuple (List2.of_list [epat_of_amb ep_1; ep_2])) }
-  | ep_1 = ambiguous_almost; CONS; ep_2 = ambiguous_almost;
+  | ep_1 = ambiguous_app; CONS; ep_2 = ambiguous_app;
     { EPatCtorApp ("Cons", EPatTuple (List2.of_list [epat_of_amb ep_1; epat_of_amb ep_2])) }
 
 epat_triangle:
   | ep = epat_cons; { ep }
   | ep = epat_triangle; TRIANGLE; omega = iso_plus; { EPatIsoApp (omega, ep) }
-  | ep = epat_triangle; TRIANGLE; omega = ambiguous_almost; { EPatIsoApp (iso_of_amb omega, ep) }
+  | ep = epat_triangle; TRIANGLE; omega = ambiguous_app; { EPatIsoApp (iso_of_amb omega, ep) }
 
 epat_top:
   | ep = epat_triangle; { ep }
@@ -216,74 +230,48 @@ expr_nocase:
 branch:
   | p = pat; BIARROW; e = expr; { (p, e) }
 
-ambiguous_grouped:
-  | x = LOWER; { AmbVar x }
-  | LPAREN; a = ambiguous; RPAREN; { a }
-
-ambiguous_almost:
-  | a = ambiguous_grouped; { a }
-  | a = ambiguous_almost; b = ambiguous_grouped; { AmbApp (iso_of_amb a, b) }
-  | omega = iso_almost; a = ambiguous_grouped; { AmbApp (omega, a) }
-
-ambiguous:
-  | a = ambiguous_almost; { a }
-  | b = ambiguous; TRIANGLE; a = ambiguous_almost; { AmbApp (iso_of_amb a, b) }
-  | a = ambiguous; TRIANGLE; omega = iso_plus; { AmbApp (omega, a) }
-
 iso_grouped:
   | LPAREN; omega = iso_top; RPAREN; { omega }
 
-iso_almost:
+iso_app:
   | omega = iso_grouped; { omega }
-  | omega_1 = iso_almost; omega_2 = iso_grouped; { IsoApp (omega_1, omega_2) }
-  | omega_1 = ambiguous_almost; omega_2 = iso_grouped; { IsoApp (iso_of_amb omega_1, omega_2) }
+  | omega_1 = iso_app; omega_2 = iso_grouped; { IsoApp (omega_1, omega_2) }
+  | omega_1 = ambiguous_app; omega_2 = iso_grouped; { IsoApp (iso_of_amb omega_1, omega_2) }
+
+iso_app_or_ambiguous_app:
+  | omega = iso_app; { omega }
+  | a = ambiguous_app; { iso_of_amb a }
 
 iso_dot:
-  | omega = iso_almost; { omega }
-  | omega_1 = iso_almost; DOT; omega_2 = iso_dot;
-    { make_dot omega_1 omega_2 }
+  | omega = iso_app; { omega }
+  | l = list2(DOT, iso_app_or_ambiguous_app); { make_dot l }
 
-  | omega_1 = iso_almost; DOT; omega_2 = ambiguous_almost;
-    { make_dot omega_1 (iso_of_amb omega_2) }
-
-  | omega_1 = ambiguous_almost; DOT; omega_2 = iso_dot;
-    { make_dot (iso_of_amb omega_1) omega_2 }
-
-  | omega_1 = ambiguous_almost; DOT; omega_2 = ambiguous_almost;
-    { make_dot (iso_of_amb omega_1) (iso_of_amb omega_2) }
+iso_dot_or_ambiguous_app:
+  | omega = iso_dot; { omega }
+  | a = ambiguous_app; { iso_of_amb a }
 
 iso_times:
   | omega = iso_dot; { omega }
-  | omega_1 = iso_times; TIMES; omega_2 = iso_dot;
-    { make_times omega_1 omega_2 }
-
-  | omega_1 = iso_times; TIMES; omega_2 = ambiguous_almost;
-    { make_times omega_1 (iso_of_amb omega_2) }
-
-  | omega_1 = ambiguous_almost; TIMES; omega_2 = iso_dot;
-    { make_times (iso_of_amb omega_1) omega_2 }
-
-  | omega_1 = ambiguous_almost; TIMES; omega_2 = ambiguous_almost;
-    { make_times (iso_of_amb omega_1) (iso_of_amb omega_2) }
+  | l = list2(TIMES, iso_dot_or_ambiguous_app); { make_times l }
 
 iso_plus:
   | omega = iso_times; { omega }
   | omega_1 = iso_plus; PLUS; omega_2 = iso_times;
     { make_plus omega_1 omega_2 }
 
-  | omega_1 = iso_plus; PLUS; omega_2 = ambiguous_almost;
+  | omega_1 = iso_plus; PLUS; omega_2 = ambiguous_app;
     { make_plus omega_1 (iso_of_amb omega_2) }
 
-  | omega_1 = ambiguous_almost; PLUS; omega_2 = iso_times;
+  | omega_1 = ambiguous_app; PLUS; omega_2 = iso_times;
     { make_plus (iso_of_amb omega_1) omega_2 }
 
-  | omega_1 = ambiguous_almost; PLUS; omega_2 = ambiguous_almost;
+  | omega_1 = ambiguous_app; PLUS; omega_2 = ambiguous_app;
     { make_plus (iso_of_amb omega_1) (iso_of_amb omega_2) }
 
 iso_triangle:
   | omega = iso_plus; { omega }
   | omega_2 = iso_triangle; TRIANGLE; omega_1 = iso_plus; { IsoApp (omega_1, omega_2) }
-  | omega_2 = iso_triangle; TRIANGLE; omega_1 = ambiguous_almost; { IsoApp (iso_of_amb omega_1, omega_2) }
+  | omega_2 = iso_triangle; TRIANGLE; omega_1 = ambiguous_app; { IsoApp (iso_of_amb omega_1, omega_2) }
 
 iso_top:
   | omega = iso_triangle; { omega }
@@ -304,28 +292,28 @@ term_grouped:
   | LBRACKET; RBRACKET; { TermCtor "Nil" }
   | LBRACKET; l = list1(SEMICOLON, term); RBRACKET; { list_of_terms l }
 
-term_almost:
+term_app:
   | t = term_grouped; { t }
   | c = UPPER; t = term_grouped; { TermCtorApp (c, t) }
   | c = UPPER; t = ambiguous_grouped; { TermCtorApp (c, term_of_amb t) }
-  | omega = iso_almost; t = term_grouped; { TermIsoApp (omega, t) }
-  | omega = ambiguous_almost; t = term_grouped; { TermIsoApp (iso_of_amb omega, t) }
+  | omega = iso_app; t = term_grouped; { TermIsoApp (omega, t) }
+  | omega = ambiguous_app; t = term_grouped; { TermIsoApp (iso_of_amb omega, t) }
 
 term_cons:
-  | t = term_almost; { t }
-  | t_1 = term_almost; CONS; t_2 = term_cons;
+  | t = term_app; { t }
+  | t_1 = term_app; CONS; t_2 = term_cons;
     { TermCtorApp ("Cons", TermTuple (List2.of_list [t_1; t_2])) }
-  | t_1 = term_almost; CONS; t_2 = ambiguous_almost;
+  | t_1 = term_app; CONS; t_2 = ambiguous_app;
     { TermCtorApp ("Cons", TermTuple (List2.of_list [t_1; term_of_amb t_2])) }
-  | t_1 = ambiguous_almost; CONS; t_2 = term_cons;
+  | t_1 = ambiguous_app; CONS; t_2 = term_cons;
     { TermCtorApp ("Cons", TermTuple (List2.of_list [term_of_amb t_1; t_2])) }
-  | t_1 = ambiguous_almost; CONS; t_2 = ambiguous_almost;
+  | t_1 = ambiguous_app; CONS; t_2 = ambiguous_app;
     { TermCtorApp ("Cons", TermTuple (List2.of_list [term_of_amb t_1; term_of_amb t_2])) }
 
 term_triangle:
   | t = term_cons; { t }
   | t = term_triangle; TRIANGLE; omega = iso_plus; { TermIsoApp (omega, t) }
-  | t = term_triangle; TRIANGLE; omega = ambiguous_almost; { TermIsoApp (iso_of_amb omega, t) }
+  | t = term_triangle; TRIANGLE; omega = ambiguous_app; { TermIsoApp (iso_of_amb omega, t) }
 
 term_top:
   | t = term_triangle; { t }
