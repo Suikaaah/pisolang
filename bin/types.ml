@@ -134,10 +134,13 @@ let rec pp_iso map fmt =
   | IsoBiArrow (a, b) -> f fmt "%a <-> %a" (pp_base map) a (pp_base map) b
   | IsoArrow (t_1, t_2) ->
       begin match t_1 with
-      | IsoArrow _ -> f fmt "(%a)" (pp_iso map) t_1
-      | IsoVar _ | IsoInv _ | IsoBiArrow _ -> f fmt "%a" (pp_iso map) t_1
+      | IsoBiArrow _ | IsoArrow _ -> f fmt "(%a)" (pp_iso map) t_1
+      | IsoVar _ | IsoInv _ -> f fmt "%a" (pp_iso map) t_1
       end;
-      f fmt " -> %a" (pp_iso map) t_2
+      begin match t_2 with
+      | IsoBiArrow _ -> f fmt " -> (%a)" (pp_iso map) t_2
+      | IsoArrow _ | IsoVar _ | IsoInv _ -> f fmt " -> %a" (pp_iso map) t_2
+      end
   | IsoVar v -> f fmt "'%s" (m v)
   | IsoInv t ->
       begin match t with
