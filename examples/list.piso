@@ -77,7 +77,7 @@ in
 
 iso init f (n) = init_aux f (n, []) |> inv len in
 
-(* 'add (m, n) = (m + n, n) *)
+(* add (m, n) = (m + n, n) *)
 iso rec add = case
 | (m, S n) <-> let (m, n) = add (S m, n) in (m, S n)
 | (m, 0)   <-> (m, 0)

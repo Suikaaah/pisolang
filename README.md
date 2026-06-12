@@ -6,14 +6,14 @@ Our main objective is to make reversible programming more accessible for all use
 PisoLang is designed to resemble OCaml, while being equipped with the built-in function
 `inv : 'A -> ~'A` that _inverts_ any function.
 
-| Objective                      | Status                                  |
-| :-:                            | :-:                                     |
-| Type inference - soundness     | :white_check_mark:                      |
-| Type safety - preservation     | :white_check_mark:                      |
-| Reversible Turing completeness | :white_check_mark:                      |
-| Partial isomorphism*           | :white_check_mark:                      |
-| Type inference - completeness  | Underway (highly likely to be complete) |
-| Type safety - progress         | Never (due to partiality)               |
+| Objective                      | Status                    |
+| :-:                            | :-:                       |
+| Reversible Turing completeness | :white_check_mark:        |
+| Partial isomorphism*           | :white_check_mark:        |
+| Type inference - soundness     | :white_check_mark:        |
+| Type inference - completeness  | :white_check_mark:        |
+| Type safety - preservation     | :white_check_mark:        |
+| Type safety - progress         | Never (due to partiality) |
 
 *: For any well-typed function `f`,
    `f v` $\rightarrow^\*$ `v'` if and only if `inv f v'` $\rightarrow^\*$ `v`.
