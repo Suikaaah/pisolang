@@ -1,7 +1,6 @@
 # PisoLang
 
-Piso (pie-so) Lang is a reversible functional programming language based on
-https://arxiv.org/abs/2309.12151 [Chardonnet et al. '24].
+Piso (pie-so) Lang is a reversible functional programming language based on [1].
 Our main objective is to make reversible programming more accessible for all users.
 PisoLang is designed to resemble OCaml, while being equipped with the built-in function
 `inv : 'A -> ~'A` that _inverts_ any function.
@@ -117,7 +116,7 @@ Iso types, on the other hand, are types given to functions. Iso types are of the
 The left-right-arrow `<->` represents the type of pattern matching.
 The right-arrow `->` represents that of a higher-order function.
 
-For example, terms such as `(3, 5)`, `x`, `False` have base types.
+For example, terms such as `(3, 5)` and `False` have base types.
 Isos such as `case True <-> False | False <-> True` have iso types
 (`bool <-> bool` in this particular case).
 
@@ -314,4 +313,11 @@ f + g := case Left x <-> Left (f x) | Right x <-> Right (g x)
 
 - `syntax/piso.vim`: syntax highlighting
 - `ftdetect/piso.vim`: file for vim to recognize the `.piso` file extension
+
+## Reference(s)
+
+[1] Chardonnet, K., Lemonnier, L., Valiron, B.: Semantics for a Turing-Complete Reversible
+Programming Language with Inductive Types. vol. 299, pp. 19:1–19:19.
+Schloss Dagstuhl – Leibniz-Zentrum für Informatik (2024).
+https://doi.org/10.4230/LIPICS.FSCD.2024.19
 
