@@ -92,5 +92,5 @@ iso rec push_back = case
   x :: y :: xs
 in
 
-init (case x <-> (x, S x)) 8
+rev "Hello, world!"
 

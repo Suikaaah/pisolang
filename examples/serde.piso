@@ -4,7 +4,7 @@ type 'a list   = Nil | Cons of 'a * 'a list
 type 'a option = None | Some of 'a
 ;;
 
-(* list utilities *)
+(* auxiliary functions *)
 
 iso rec len = case
 | []      <-> (0, [])
@@ -16,9 +16,7 @@ iso rec rev_aux = case
 | (l, (S n, x :: xs)) <->
   let (l, (n, xs)) = rev_aux (x :: l, (n, xs)) in
   (l, (S n, xs))
-in
-
-iso rev (l) =
+in iso rev (l) =
   let (l, (n, [])) = rev_aux ([], len l) in
   inv len (n, l)
 in
@@ -28,36 +26,61 @@ iso rec partition_aux = case
 | (l, x :: xs, S n) <->
   let (l, xs, n) = partition_aux (x :: l, xs, n) in
   (l, xs, S n)
-in
-
-iso partition (r, n) =
+in iso partition (n, r) =
   let (l, r, n) = partition_aux ([], r, n) in
   (inv len (n, l) |> rev, r)
 in
 
-iso concat = inv partition in
+iso is_semicolon = case
+| 'a' <-> (False, 'a') | 'b' <-> (False, 'b') | 'c' <-> (False, 'c')
+| 'd' <-> (False, 'd') | 'e' <-> (False, 'e') | 'f' <-> (False, 'f')
+| 'g' <-> (False, 'g') | 'h' <-> (False, 'h') | 'i' <-> (False, 'i')
+| 'j' <-> (False, 'j') | 'k' <-> (False, 'k') | 'l' <-> (False, 'l')
+| 'm' <-> (False, 'm') | 'n' <-> (False, 'n') | 'o' <-> (False, 'o')
+| 'p' <-> (False, 'p') | 'q' <-> (False, 'q') | 'r' <-> (False, 'r')
+| 's' <-> (False, 's') | 't' <-> (False, 't') | 'u' <-> (False, 'u')
+| 'v' <-> (False, 'v') | 'w' <-> (False, 'w') | 'x' <-> (False, 'x')
+| 'y' <-> (False, 'y') | 'z' <-> (False, 'z') | ';' <-> (True, ';')
+in
 
-(* serialization *)
-
-iso serialize_bool = case False <-> "False" | True <-> "True" in
-
-(* todo
-
-iso rec serialize_list f = case
-| []      <-> "N"
+iso rec find_semicolon = case
+| []      <-> (0, [])
 | x :: xs <->
-  let (serialized, pos) = concat (f x, serialize_list f xs) in
-  'C' :: serialize_nat pos :: serialized
+  let (n, x :: xs) = match (is_semicolon x, xs) with
+    | ((False, x), xs) <->
+      let (n, xs) = find_semicolon xs in
+      (S n, x :: xs)
+    | ((True, ';'), xs) <-> (0, xs)
+  in (n, x :: xs)
 in
 
-*)
+(* parsers *)
 
-iso serialize_option f = case
-| None   <-> "None"
-| Some x <-> 'S' :: 'o' :: 'm' :: 'e' :: ' ' :: f x
+iso parse_bool = case
+| ""  <-> False
+| "a" <-> True
 in
 
-iso deserialize = serialize_option (serialize_option serialize_bool) |> inv in
+iso rec parse_nat = case
+| ""        <-> 0
+| 'a' :: xs <-> S (parse_nat xs)
+in
 
-deserialize "Some Some False"
+iso rec parse_list f = case
+| ""        <-> []
+| 'a' :: xs <->
+  let (l, r) = find_semicolon xs |> partition in
+  f l :: parse_list f r
+in
+
+iso parse_option f = case
+| ""        <-> None
+| 'a' :: xs <-> Some (f xs)
+in
+
+(* serializer (inverted parser) *)
+
+iso serialize = parse_list (parse_option parse_nat) |> inv in
+
+serialize [Some 3; None; Some 4]
 
