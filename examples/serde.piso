@@ -1,0 +1,63 @@
+type bool      = False | True
+type nat       = Z | S of nat
+type 'a list   = Nil | Cons of 'a * 'a list
+type 'a option = None | Some of 'a
+;;
+
+(* list utilities *)
+
+iso rec len = case
+| []      <-> (0, [])
+| x :: xs <-> let (n, xs) = len xs in (S n, x :: xs)
+in
+
+iso rec rev_aux = case
+| (l, (0, []))        <-> (l, (0, []))
+| (l, (S n, x :: xs)) <->
+  let (l, (n, xs)) = rev_aux (x :: l, (n, xs)) in
+  (l, (S n, xs))
+in
+
+iso rev (l) =
+  let (l, (n, [])) = rev_aux ([], len l) in
+  inv len (n, l)
+in
+
+iso rec partition_aux = case
+| (l, r, 0)         <-> (l, r, 0)
+| (l, x :: xs, S n) <->
+  let (l, xs, n) = partition_aux (x :: l, xs, n) in
+  (l, xs, S n)
+in
+
+iso partition (r, n) =
+  let (l, r, n) = partition_aux ([], r, n) in
+  (inv len (n, l) |> rev, r)
+in
+
+iso concat = inv partition in
+
+(* serialization *)
+
+iso serialize_bool = case False <-> "False" | True <-> "True" in
+
+(* todo
+
+iso rec serialize_list f = case
+| []      <-> "N"
+| x :: xs <->
+  let (serialized, pos) = concat (f x, serialize_list f xs) in
+  'C' :: serialize_nat pos :: serialized
+in
+
+*)
+
+iso serialize_option f = case
+| None   <-> "None"
+| Some x <-> 'S' :: 'o' :: 'm' :: 'e' :: ' ' :: f x
+in
+
+iso deserialize = serialize_option (serialize_option serialize_bool) |> inv in
+
+deserialize "Some Some False"
+
