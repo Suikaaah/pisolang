@@ -2,6 +2,7 @@ type bool      = False | True
 type nat       = Z | S of nat
 type 'a list   = Nil | Cons of 'a * 'a list
 type 'a option = None | Some of 'a
+type symbol    = Normal of char | Open | Close | Delim
 ;;
 
 (* auxiliary functions *)
@@ -9,6 +10,22 @@ type 'a option = None | Some of 'a
 iso rec len = case
 | []      <-> (0, [])
 | x :: xs <-> let (n, xs) = len xs in (S n, x :: xs)
+in
+
+iso rec map f = case
+| []      <-> []
+| x :: xs <-> f x :: map f xs
+in
+
+iso rec snoc_aux = case
+| ([], y, 0) <-> ([y], 0)
+| (x :: xs, y, S n) <->
+  let (xs, n) = snoc_aux (xs, y, n) in
+  (x :: xs, S n)
+in iso snoc (xs, y) =
+  let (n, xs) = len xs in
+  let (xs, n) = snoc_aux (xs, y, n) in
+  inv len (S n, xs)
 in
 
 iso rec rev_aux = case
@@ -21,66 +38,76 @@ in iso rev (l) =
   inv len (n, l)
 in
 
-iso rec partition_aux = case
-| (l, r, 0)         <-> (l, r, 0)
-| (l, x :: xs, S n) <->
-  let (l, xs, n) = partition_aux (x :: l, xs, n) in
-  (l, xs, S n)
-in iso partition (n, r) =
-  let (l, r, n) = partition_aux ([], r, n) in
-  (inv len (n, l) |> rev, r)
+iso symbol_of_char = case
+| 'a' <-> Normal 'a'
+| 'b' <-> Normal 'b'
+| 'c' <-> Normal 'c'
+| '(' <-> Open
+| ')' <-> Close
+| ' ' <-> Delim
 in
 
-iso is_semicolon = case
-| 'a' <-> (False, 'a') | 'b' <-> (False, 'b') | 'c' <-> (False, 'c')
-| 'd' <-> (False, 'd') | 'e' <-> (False, 'e') | 'f' <-> (False, 'f')
-| 'g' <-> (False, 'g') | 'h' <-> (False, 'h') | 'i' <-> (False, 'i')
-| 'j' <-> (False, 'j') | 'k' <-> (False, 'k') | 'l' <-> (False, 'l')
-| 'm' <-> (False, 'm') | 'n' <-> (False, 'n') | 'o' <-> (False, 'o')
-| 'p' <-> (False, 'p') | 'q' <-> (False, 'q') | 'r' <-> (False, 'r')
-| 's' <-> (False, 's') | 't' <-> (False, 't') | 'u' <-> (False, 'u')
-| 'v' <-> (False, 'v') | 'w' <-> (False, 'w') | 'x' <-> (False, 'x')
-| 'y' <-> (False, 'y') | 'z' <-> (False, 'z') | ';' <-> (True, ';')
+iso rec find_delim = case
+| ([]     , 0) <-> ([], 0, 0)
+| (x :: xs, level) <->
+  let (x :: xs, level, pos) = match (x, xs, level) with
+    | (Normal x, xs, level) <->
+      let (xs, level, pos) = find_delim (xs, level) in
+      (Normal x :: xs, level, S pos)
+    | (Open, xs, level) <->
+      let (xs, level, pos) = find_delim (xs, S level) in
+      (Open :: xs, level, S pos)
+    | (Close, xs, S level) <->
+      let (xs, level, pos) = find_delim (xs, level) in
+      (Close :: xs, level, S pos)
+    | (Delim, xs, S level) <->
+      let (xs, level, pos) = find_delim (xs, S level) in
+      (Delim :: xs, level, S pos)
+    | (Delim, xs, 0) <-> (Delim :: xs, 0, 0)
+  in (x :: xs, level, pos)
 in
 
-iso rec find_semicolon = case
-| []      <-> (0, [])
-| x :: xs <->
-  let (n, x :: xs) = match (is_semicolon x, xs) with
-    | ((False, x), xs) <->
-      let (n, xs) = find_semicolon xs in
-      (S n, x :: xs)
-    | ((True, ';'), xs) <-> (0, xs)
-  in (n, x :: xs)
+iso rec concat_aux = case
+| ([], ys)      <-> (ys, 0)
+| (x :: xs, ys) <->
+  let (xs, n) = concat_aux (xs, x :: ys) in
+  (xs, S n)
+in iso concat (xs, ys) =
+  let (zs, n) = concat_aux (rev xs, ' ' :: ys) in
+  let (zs, 0) = inv find_delim (map symbol_of_char zs, 0, n) in
+  map (inv symbol_of_char) zs
 in
 
-(* parsers *)
+iso serialize_unit () = "" in
 
-iso parse_bool = case
-| ""  <-> False
-| "a" <-> True
+iso serialize_bool = case
+| False <-> ""
+| True  <-> "a"
 in
 
-iso rec parse_nat = case
-| ""        <-> 0
-| 'a' :: xs <-> S (parse_nat xs)
+iso rec serialize_nat = case
+| 0   <-> ""
+| S n <-> 'a' :: serialize_nat n
 in
 
-iso rec parse_list f = case
-| ""        <-> []
-| 'a' :: xs <->
-  let (l, r) = find_semicolon xs |> partition in
-  f l :: parse_list f r
+iso rec serialize_list f = case
+| []      <-> ""
+| x :: xs <-> '(' :: snoc (concat (f x, serialize_list f xs), ')')
 in
 
-iso parse_option f = case
-| ""        <-> None
-| 'a' :: xs <-> Some (f xs)
+iso serialize_option f = case
+| None   <-> ""
+| Some x <-> 'a' :: f x
 in
 
-(* serializer (inverted parser) *)
+(* []       -> b *)
+(* [()]     -> (a b)*)
+(* [(); ()] -> (a (a b)) *)
 
-iso serialize = parse_list (parse_option parse_nat) |> inv in
+iso serialize = serialize_list (serialize_option serialize_nat) in
+iso deserialize = inv serialize in
 
-serialize [Some 3; None; Some 4]
+(* serialize [None; Some 3; Some 2] *)
+
+deserialize "(aa (aaa ( (a ))))"
 
