@@ -305,6 +305,7 @@ f + g := case Left x <-> Left (f x) | Right x <-> Right (g x)
 - `isort.piso`: reversible polymorphic insertion sort
 - `list.piso`: polymorphic operations on lists
 - `nat.piso`: operations on natural numbers
+- `serde.piso`: serializers and automatically generated deserializers
 - `misc.piso`: random stuff
 - `tree.piso`: operations on trees
 - `exists.piso`: O(n) search

@@ -2,11 +2,12 @@ type bool      = False | True
 type nat       = Z | S of nat
 type 'a list   = Nil | Cons of 'a * 'a list
 type 'a option = None | Some of 'a
-type symbol    = Normal of char | Open | Close | Delim
+type symbol    = Char of char | Open | Close | Delim
 ;;
 
 (* auxiliary functions *)
 
+(* len xs = (`length of xs`, xs) *)
 iso rec len = case
 | []      <-> (0, [])
 | x :: xs <-> let (n, xs) = len xs in (S n, x :: xs)
@@ -17,81 +18,89 @@ iso rec map f = case
 | x :: xs <-> f x :: map f xs
 in
 
-iso rec snoc_aux = case
+(* snoc (xs, y) = xs @ [y] *)
+iso rec snoc' = case
 | ([], y, 0) <-> ([y], 0)
 | (x :: xs, y, S n) <->
-  let (xs, n) = snoc_aux (xs, y, n) in
+  let (xs, n) = snoc' (xs, y, n) in
   (x :: xs, S n)
 in iso snoc (xs, y) =
   let (n, xs) = len xs in
-  let (xs, n) = snoc_aux (xs, y, n) in
+  let (xs, n) = snoc' (xs, y, n) in
   inv len (S n, xs)
 in
 
-iso rec rev_aux = case
+iso parenthesize (xs) = '(' :: snoc (xs, ')') in
+
+(* rev xs = `xs in reverse order` *)
+iso rec rev' = case
 | (l, (0, []))        <-> (l, (0, []))
 | (l, (S n, x :: xs)) <->
-  let (l, (n, xs)) = rev_aux (x :: l, (n, xs)) in
+  let (l, (n, xs)) = rev' (x :: l, (n, xs)) in
   (l, (S n, xs))
 in iso rev (l) =
-  let (l, (n, [])) = rev_aux ([], len l) in
+  let (l, (n, [])) = rev' ([], len l) in
   inv len (n, l)
 in
 
 iso symbol_of_char = case
-| 'a' <-> Normal 'a' | 'b' <-> Normal 'b' | 'c' <-> Normal 'c'
-| 'd' <-> Normal 'd' | 'e' <-> Normal 'e' | 'f' <-> Normal 'f'
-| 'g' <-> Normal 'g' | 'h' <-> Normal 'h' | 'i' <-> Normal 'i'
-| 'j' <-> Normal 'j' | 'k' <-> Normal 'k' | 'l' <-> Normal 'l'
-| 'm' <-> Normal 'm' | 'n' <-> Normal 'n' | 'o' <-> Normal 'o'
-| 'p' <-> Normal 'p' | 'q' <-> Normal 'q' | 'r' <-> Normal 'r'
-| 's' <-> Normal 's' | 't' <-> Normal 't' | 'u' <-> Normal 'u'
-| 'v' <-> Normal 'v' | 'w' <-> Normal 'w' | 'x' <-> Normal 'x'
-| 'y' <-> Normal 'y' | 'z' <-> Normal 'z'
-| 'A' <-> Normal 'A' | 'B' <-> Normal 'B' | 'C' <-> Normal 'C'
-| 'D' <-> Normal 'D' | 'E' <-> Normal 'E' | 'F' <-> Normal 'F'
-| 'G' <-> Normal 'G' | 'H' <-> Normal 'H' | 'I' <-> Normal 'I'
-| 'J' <-> Normal 'J' | 'K' <-> Normal 'K' | 'L' <-> Normal 'L'
-| 'M' <-> Normal 'M' | 'N' <-> Normal 'N' | 'O' <-> Normal 'O'
-| 'P' <-> Normal 'P' | 'Q' <-> Normal 'Q' | 'R' <-> Normal 'R'
-| 'S' <-> Normal 'S' | 'T' <-> Normal 'T' | 'U' <-> Normal 'U'
-| 'V' <-> Normal 'V' | 'W' <-> Normal 'W' | 'X' <-> Normal 'X'
-| 'Y' <-> Normal 'Y' | 'Z' <-> Normal 'Z'
-| ' ' <-> Normal ' '
-| '(' <-> Open | ')' <-> Close | ',' <-> Delim
+| 'a' <-> Char 'a' | 'b' <-> Char 'b' | 'c' <-> Char 'c'
+| 'd' <-> Char 'd' | 'e' <-> Char 'e' | 'f' <-> Char 'f'
+| 'g' <-> Char 'g' | 'h' <-> Char 'h' | 'i' <-> Char 'i'
+| 'j' <-> Char 'j' | 'k' <-> Char 'k' | 'l' <-> Char 'l'
+| 'm' <-> Char 'm' | 'n' <-> Char 'n' | 'o' <-> Char 'o'
+| 'p' <-> Char 'p' | 'q' <-> Char 'q' | 'r' <-> Char 'r'
+| 's' <-> Char 's' | 't' <-> Char 't' | 'u' <-> Char 'u'
+| 'v' <-> Char 'v' | 'w' <-> Char 'w' | 'x' <-> Char 'x'
+| 'y' <-> Char 'y' | 'z' <-> Char 'z' | 'A' <-> Char 'A'
+| 'B' <-> Char 'B' | 'C' <-> Char 'C' | 'D' <-> Char 'D'
+| 'E' <-> Char 'E' | 'F' <-> Char 'F' | 'G' <-> Char 'G'
+| 'H' <-> Char 'H' | 'I' <-> Char 'I' | 'J' <-> Char 'J'
+| 'K' <-> Char 'K' | 'L' <-> Char 'L' | 'M' <-> Char 'M'
+| 'N' <-> Char 'N' | 'O' <-> Char 'O' | 'P' <-> Char 'P'
+| 'Q' <-> Char 'Q' | 'R' <-> Char 'R' | 'S' <-> Char 'S'
+| 'T' <-> Char 'T' | 'U' <-> Char 'U' | 'V' <-> Char 'V'
+| 'W' <-> Char 'W' | 'X' <-> Char 'X' | 'Y' <-> Char 'Y'
+| 'Z' <-> Char 'Z' | ' ' <-> Char ' ' | '(' <-> Open
+| ')' <-> Close    | ',' <-> Delim
 in
 
-iso rec find_delim = case
-| ([], 0) <-> ([], 0, 0)
-
-| (Normal x :: xs, level) <->
-  let (xs, level, pos) = find_delim (xs, level) in
-  (Normal x :: xs, level, S pos)
+(* finds the leftmost exposed delimiter *)
+(* assuming well-formed input *)
+iso rec find_delim' = case
+| (Char x :: xs, level) <->
+  let (xs, level, pos) = find_delim' (xs, level) in
+  (Char x :: xs, level, S pos)
 
 | (Open :: xs, level) <->
-  let (xs, level, pos) = find_delim (xs, S level) in
+  let (xs, level, pos) = find_delim' (xs, S level) in
   (Open :: xs, level, S pos)
 
 | (Close :: xs, S level) <->
-  let (xs, level, pos) = find_delim (xs, level) in
+  let (xs, level, pos) = find_delim' (xs, level) in
   (Close :: xs, level, S pos)
 
 | (Delim :: xs, S level) <->
-  let (xs, level, pos) = find_delim (xs, S level) in
+  let (xs, level, pos) = find_delim' (xs, S level) in
   (Delim :: xs, level, S pos)
 
 | (Delim :: xs, 0) <-> (Delim :: xs, 0, 0)
+in iso find_delim (xs) =
+  let (xs, 0, pos) = find_delim' (map symbol_of_char xs, 0) in
+  (map (inv symbol_of_char) xs, pos)
 in
 
-iso rec concat_aux = case
+(* concat' (xs, ys) = (xs @ ys, len ys) *)
+(* concat  (xs, ys) = "(%s, %s)" xs ys *)
+iso rec concat' = case
 | ([], ys)      <-> (ys, 0)
 | (x :: xs, ys) <->
-  let (xs, n) = concat_aux (xs, x :: ys) in
+  let (xs, n) = concat' (xs, x :: ys) in
   (xs, S n)
 in iso concat (xs, ys) =
-  let (zs, n) = concat_aux (rev xs, ',' :: ' ' :: ys) in
-  let (zs, 0) = inv find_delim (map symbol_of_char zs, 0, n) in
-  '(' :: snoc (map (inv symbol_of_char) zs, ')')
+  concat' (rev xs, ',' :: ' ' :: ys)
+  |> inv find_delim
+  |> parenthesize
 in
 
 (* serializers *)
@@ -107,29 +116,23 @@ in
 
 iso rec serialize_nat = case
 | 0   <-> "Z"
-| S n <-> 'S'::' '::'(' :: snoc (serialize_nat n, ')')
+| S n <-> 'S'::' ' :: parenthesize (serialize_nat n)
 in
 
 iso rec serialize_list f = case
 | []      <-> "Nil"
 | x :: xs <-> 'C'::'o'::'n'::'s'::' ' :: concat (f x, serialize_list f xs)
 in
-iso rec serialize_list2 f = case
-| []      <-> "Nil"
-| x :: xs <-> 'C'::'o'::'n'::'s'::' ' :: concat (f x, serialize_list2 f xs)
-in
 
 iso serialize_option f = case
 | None   <-> "None"
-| Some x <-> 'S'::'o'::'m'::'e'::' '::'(' :: snoc (f x, ')')
+| Some x <-> 'S'::'o'::'m'::'e'::' ' :: parenthesize (f x)
 in
 
-iso serialize = serialize_list (serialize_list2 serialize_nat) in
-iso deserialize = inv serialize in
-iso find_delim_test (xs) =
-  let (xs, level, pos) = find_delim (map symbol_of_char xs, 0) in
-  (map (inv symbol_of_char) xs, level, pos)
-in
+iso serialize = serialize_list (serialize_list serialize_nat) in
 
-serialize [[]; [0]]
+(
+  serialize [[0; 2]; [1]],
+  inv serialize "Cons (Cons (Z, Cons (S (S (Z)), Nil)), Cons (Cons (S (Z), Nil), Nil))"
+)
 

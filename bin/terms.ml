@@ -87,9 +87,9 @@ let subst_term_bulk l t = List.fold_left (fun t s -> subst_term s t) t l
 let rec subst_iso ((omega', phi) as s) = function
   | IsoVar psi -> if psi = phi then omega' else IsoVar psi
   | IsoFix (psi, omega) ->
-      IsoFix (psi, subst_iso s omega) (* alpha-cvt assumed *)
+      if psi = phi then IsoFix (psi, omega) else IsoFix (psi, subst_iso s omega)
   | IsoFun (psi, omega) ->
-      IsoFun (psi, subst_iso s omega) (* alpha-cvt assumed *)
+      if psi = phi then IsoFun (psi, omega) else IsoFun (psi, subst_iso s omega)
   | IsoApp (omega_1, omega_2) ->
       IsoApp (subst_iso s omega_1, subst_iso s omega_2)
   | IsoInv omega -> IsoInv (subst_iso s omega)
@@ -109,7 +109,9 @@ let rec subst_iso_term ((omega', phi) as s) = function
   | TermLet { p; t_1; t_2 } ->
       TermLet { p; t_1 = subst_iso_term s t_1; t_2 = subst_iso_term s t_2 }
   | TermIso { phi = psi; omega; t } ->
-      TermIso { phi = psi; omega = subst_iso s omega; t = subst_iso_term s t }
+      let omega = subst_iso s omega in
+      let t = if psi = phi then t else subst_iso_term s t in
+      TermIso { phi = psi; omega; t }
 
 let rec invert = function
   | IsoVar phi -> IsoVar phi
