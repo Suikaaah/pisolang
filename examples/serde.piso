@@ -39,32 +39,48 @@ in iso rev (l) =
 in
 
 iso symbol_of_char = case
-| 'a' <-> Normal 'a'
-| 'b' <-> Normal 'b'
-| 'c' <-> Normal 'c'
-| '(' <-> Open
-| ')' <-> Close
-| ' ' <-> Delim
+| 'a' <-> Normal 'a' | 'b' <-> Normal 'b' | 'c' <-> Normal 'c'
+| 'd' <-> Normal 'd' | 'e' <-> Normal 'e' | 'f' <-> Normal 'f'
+| 'g' <-> Normal 'g' | 'h' <-> Normal 'h' | 'i' <-> Normal 'i'
+| 'j' <-> Normal 'j' | 'k' <-> Normal 'k' | 'l' <-> Normal 'l'
+| 'm' <-> Normal 'm' | 'n' <-> Normal 'n' | 'o' <-> Normal 'o'
+| 'p' <-> Normal 'p' | 'q' <-> Normal 'q' | 'r' <-> Normal 'r'
+| 's' <-> Normal 's' | 't' <-> Normal 't' | 'u' <-> Normal 'u'
+| 'v' <-> Normal 'v' | 'w' <-> Normal 'w' | 'x' <-> Normal 'x'
+| 'y' <-> Normal 'y' | 'z' <-> Normal 'z'
+| 'A' <-> Normal 'A' | 'B' <-> Normal 'B' | 'C' <-> Normal 'C'
+| 'D' <-> Normal 'D' | 'E' <-> Normal 'E' | 'F' <-> Normal 'F'
+| 'G' <-> Normal 'G' | 'H' <-> Normal 'H' | 'I' <-> Normal 'I'
+| 'J' <-> Normal 'J' | 'K' <-> Normal 'K' | 'L' <-> Normal 'L'
+| 'M' <-> Normal 'M' | 'N' <-> Normal 'N' | 'O' <-> Normal 'O'
+| 'P' <-> Normal 'P' | 'Q' <-> Normal 'Q' | 'R' <-> Normal 'R'
+| 'S' <-> Normal 'S' | 'T' <-> Normal 'T' | 'U' <-> Normal 'U'
+| 'V' <-> Normal 'V' | 'W' <-> Normal 'W' | 'X' <-> Normal 'X'
+| 'Y' <-> Normal 'Y' | 'Z' <-> Normal 'Z'
+| ' ' <-> Normal ' '
+| '(' <-> Open | ')' <-> Close | ',' <-> Delim
 in
 
 iso rec find_delim = case
-| ([]     , 0) <-> ([], 0, 0)
-| (x :: xs, level) <->
-  let (x :: xs, level, pos) = match (x, xs, level) with
-    | (Normal x, xs, level) <->
-      let (xs, level, pos) = find_delim (xs, level) in
-      (Normal x :: xs, level, S pos)
-    | (Open, xs, level) <->
-      let (xs, level, pos) = find_delim (xs, S level) in
-      (Open :: xs, level, S pos)
-    | (Close, xs, S level) <->
-      let (xs, level, pos) = find_delim (xs, level) in
-      (Close :: xs, level, S pos)
-    | (Delim, xs, S level) <->
-      let (xs, level, pos) = find_delim (xs, S level) in
-      (Delim :: xs, level, S pos)
-    | (Delim, xs, 0) <-> (Delim :: xs, 0, 0)
-  in (x :: xs, level, pos)
+| ([], 0) <-> ([], 0, 0)
+
+| (Normal x :: xs, level) <->
+  let (xs, level, pos) = find_delim (xs, level) in
+  (Normal x :: xs, level, S pos)
+
+| (Open :: xs, level) <->
+  let (xs, level, pos) = find_delim (xs, S level) in
+  (Open :: xs, level, S pos)
+
+| (Close :: xs, S level) <->
+  let (xs, level, pos) = find_delim (xs, level) in
+  (Close :: xs, level, S pos)
+
+| (Delim :: xs, S level) <->
+  let (xs, level, pos) = find_delim (xs, S level) in
+  (Delim :: xs, level, S pos)
+
+| (Delim :: xs, 0) <-> (Delim :: xs, 0, 0)
 in
 
 iso rec concat_aux = case
@@ -73,41 +89,47 @@ iso rec concat_aux = case
   let (xs, n) = concat_aux (xs, x :: ys) in
   (xs, S n)
 in iso concat (xs, ys) =
-  let (zs, n) = concat_aux (rev xs, ' ' :: ys) in
+  let (zs, n) = concat_aux (rev xs, ',' :: ' ' :: ys) in
   let (zs, 0) = inv find_delim (map symbol_of_char zs, 0, n) in
-  map (inv symbol_of_char) zs
+  '(' :: snoc (map (inv symbol_of_char) zs, ')')
 in
 
-iso serialize_unit () = "" in
+(* serializers *)
+
+iso serialize_unit () = "()" in
+
+iso serialize_pair f g (x, y) = concat (f x, g y) in
 
 iso serialize_bool = case
-| False <-> ""
-| True  <-> "a"
+| False <-> "False"
+| True  <-> "True"
 in
 
 iso rec serialize_nat = case
-| 0   <-> ""
-| S n <-> 'a' :: serialize_nat n
+| 0   <-> "Z"
+| S n <-> 'S'::' '::'(' :: snoc (serialize_nat n, ')')
 in
 
 iso rec serialize_list f = case
-| []      <-> ""
-| x :: xs <-> '(' :: snoc (concat (f x, serialize_list f xs), ')')
+| []      <-> "Nil"
+| x :: xs <-> 'C'::'o'::'n'::'s'::' ' :: concat (f x, serialize_list f xs)
+in
+iso rec serialize_list2 f = case
+| []      <-> "Nil"
+| x :: xs <-> 'C'::'o'::'n'::'s'::' ' :: concat (f x, serialize_list2 f xs)
 in
 
 iso serialize_option f = case
-| None   <-> ""
-| Some x <-> 'a' :: f x
+| None   <-> "None"
+| Some x <-> 'S'::'o'::'m'::'e'::' '::'(' :: snoc (f x, ')')
 in
 
-(* []       -> b *)
-(* [()]     -> (a b)*)
-(* [(); ()] -> (a (a b)) *)
-
-iso serialize = serialize_list (serialize_option serialize_nat) in
+iso serialize = serialize_list (serialize_list2 serialize_nat) in
 iso deserialize = inv serialize in
+iso find_delim_test (xs) =
+  let (xs, level, pos) = find_delim (map symbol_of_char xs, 0) in
+  (map (inv symbol_of_char) xs, level, pos)
+in
 
-(* serialize [None; Some 3; Some 2] *)
-
-deserialize "(aa (aaa ( (a ))))"
+serialize [[]; [0]]
 
