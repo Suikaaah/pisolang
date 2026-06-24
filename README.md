@@ -290,6 +290,13 @@ case x <->
 ## Miscellaneous
 
 ```ocaml
+(* some of the ASCII characters are supported *)
+(* they have the primitive type `char` *)
+'a' : char
+
+(* syntactic sugar for char list *)
+"Hello, world!" : char list
+
 (* in order from highest precedence to lowest precedence *)
 f_1 . ... . f_n := case x <-> f_1 (... (f_n x))
 f_1 * ... * f_n := case (x_1, ..., x_n) <-> (f_1 x_1, ..., f_n x_n)

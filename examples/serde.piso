@@ -20,10 +20,9 @@ in
 
 (* snoc (xs, y) = xs @ [y] *)
 iso rec snoc' = case
-| ([], y, 0) <-> ([y], 0)
+| ([], y, 0)        <-> ([y], 0)
 | (x :: xs, y, S n) <->
-  let (xs, n) = snoc' (xs, y, n) in
-  (x :: xs, S n)
+  let (xs, n) = snoc' (xs, y, n) in (x :: xs, S n)
 in iso snoc (xs, y) =
   let (n, xs) = len xs in
   let (xs, n) = snoc' (xs, y, n) in
@@ -90,13 +89,12 @@ in iso find_delim (xs) =
   (map (inv symbol_of_char) xs, pos)
 in
 
-(* concat' (xs, ys) = (xs @ ys, len ys) *)
+(* concat' (xs, ys) = (`xs in reverse order` @ ys, len ys) *)
 (* concat  (xs, ys) = "(%s, %s)" xs ys *)
 iso rec concat' = case
 | ([], ys)      <-> (ys, 0)
 | (x :: xs, ys) <->
-  let (xs, n) = concat' (xs, x :: ys) in
-  (xs, S n)
+  let (xs, n) = concat' (xs, x :: ys) in (xs, S n)
 in iso concat (xs, ys) =
   concat' (rev xs, ',' :: ' ' :: ys)
   |> inv find_delim
