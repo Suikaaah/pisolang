@@ -1,0 +1,119 @@
+type nat             = Z | S of nat
+type 'a list         = Nil | Cons of 'a * 'a list
+type bool            = False | True
+type 'a option       = None | Some of 'a
+type ('l, 'r) either = Left of 'l | Right of 'r
+;;
+
+(* lt (m, n) = (m < n, m, n) *)
+iso rec lt = case
+| (m, 0)     <-> (False, m, 0)
+| (0, S n)   <-> (True, 0, S n)
+| (S m, S n) <->
+  let (b, m, n) = lt (m, n) in (b, S m, S n)
+in
+
+(* add (m, n) = (m + n, n) *)
+iso rec add = case
+| (m, 0)   <-> (m, 0)
+| (m, S n) <-> let (m, n) = add (S m, n) in (m, S n)
+in
+
+(* div (m, n) = (m / n, n, m % n) *)
+iso rec div' (m, n, acc) =
+  match (lt (m, n), acc) with
+  | ((True, m, n), 0)    <-> (m, n, 0)
+  | ((False, m, n), acc) <->
+    let (m, n) = inv add (m, n) in
+    let (m, n, acc) = div' (m, n, acc) in
+    (m, n, S acc)
+in iso div (m, n) =
+  let (m, n, acc) = div' (m, n, 0) in (acc, n, m)
+in
+
+iso rec fact' = case
+| (1, n)       <-> [Some n]
+| (S (S m), n) <->
+  let x :: y :: xs =
+    match div (S (S m), n) with
+    | (k, n, 0)   <->
+      let (n, n') = (n, n) in Some n' :: fact' (k, n)
+    | (k, n, S l) <->
+      let (m, n) = inv div (k, n, S l) in None :: fact' (m, S n)
+  in x :: y :: xs
+in
+
+(* e.g. run_length eq [x; x; x; y; z; z] = [(x, 3); (y, 1); (z, 2)] *)
+iso rec run_length eq = case
+| []      <-> []
+| x :: xs <->
+  let branched = match (x, run_length eq xs) with
+    | (x, [])           <-> Left x
+    | (x, (y, n) :: ys) <-> Right begin
+        match (eq (x, y), n, ys) with
+        | ((True, x, x), S n, ys) <-> (x, S (S n)) :: ys
+        | ((False, x, y), n, ys)  <-> (x, 1) :: (y, n) :: ys
+      end
+  in
+  let x :: xs = match branched with
+    | Left x                     <-> [(x, 1)]
+    | Right ((x, S (S n)) :: ys) <-> (x, S (S n)) :: ys
+    | Right ((x, 1) :: y :: ys)  <-> (x, 1) :: y :: ys
+  in
+  x :: xs
+in
+
+iso rec nat_eq = case
+| (0, 0)     <-> (True, 0, 0)
+| (S m, 0)   <-> (False, S m, 0)
+| (0, S n)   <-> (False, 0, S n)
+| (S m, S n) <-> let (b, m, n) = nat_eq (m, n) in (b, S m, S n)
+in
+
+iso option_eq eq = case
+| (None, None)     <-> (True, None, None)
+| (None, Some y)   <-> (False, None, Some y)
+| (Some x, None)   <-> (False, Some x, None)
+| (Some x, Some y) <-> let (b, x, y) = eq (x, y) in (b, Some x, Some y)
+in
+
+iso rec len = case
+| []      <-> (0, [])
+| x :: xs <-> let (n, xs) = len xs in (S n, x :: xs)
+in
+
+iso rec rev' = case
+| (l, (0, []))        <-> (l, (0, []))
+| (l, (S n, x :: xs)) <->
+  let (l, (n, xs)) = rev' (x :: l, (n, xs)) in
+  (l, (S n, xs))
+in iso rev (l) =
+  let (l, (n, [])) = rev' ([], len l) in
+  inv len (n, l)
+in
+
+iso rec cleanup = case
+| [(Some 2, l)]                                 <-> [(2, l)]
+| [(Some k, l); (None, m)]                      <->
+  let (m, 2) = add (m, 2) in
+  let (k, k) = (k, m) in
+  let S (S (S k)) = k in
+  [(S (S (S k)), l)]
+| (Some k, l) :: (None, m) :: (Some n, o) :: xs <->
+  let (m, n) = add (m, n) in
+  let (k, k) = (k, m) in
+  let S (S (S k)) = k in
+  let x :: xs = cleanup ((Some n, o) :: xs) in
+  (S (S (S k)), l) :: x :: xs
+in
+
+iso fact (n) =
+  let (Some m, S n) :: xs =
+    fact' (n, 2)
+    |> run_length (option_eq nat_eq)
+    |> rev
+  in (Some m, n) :: xs |> cleanup
+in
+
+fact 280
+

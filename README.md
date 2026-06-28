@@ -313,6 +313,7 @@ f + g := case Left x <-> Left (f x) | Right x <-> Right (g x)
 - `list.piso`: polymorphic operations on lists
 - `nat.piso`: operations on natural numbers
 - `serde.piso`: serializers and automatically generated deserializers
+- `fact.piso`: prime factorization
 - `misc.piso`: random stuff
 - `tree.piso`: operations on trees
 - `exists.piso`: O(n) search
