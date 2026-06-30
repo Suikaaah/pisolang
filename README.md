@@ -302,6 +302,22 @@ f_1 . ... . f_n := case x <-> f_1 (... (f_n x))
 f_1 * ... * f_n := case (x_1, ..., x_n) <-> (f_1 x_1, ..., f_n x_n)
 (* left-associative *)
 f + g := case Left x <-> Left (f x) | Right x <-> Right (g x)
+
+(* REJECTED due to ambiguity *)
+| m <-> match m with
+  | 0   <-> 0
+  | S n <-> S n
+
+(* OK *)
+| m <-> (match m with
+  | 0   <-> 0
+  | S n <-> S n)
+
+(* OK *)
+| m <-> begin match m with
+  | 0   <-> 0
+  | S n <-> S n
+  end
 ```
 
 ## Contents of `examples`
