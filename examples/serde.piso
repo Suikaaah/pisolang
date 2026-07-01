@@ -88,7 +88,7 @@ in iso find_delim (xs) =
 in
 
 (* concat' (xs, ys) = (`xs in reverse order` @ ys, len ys) *)
-(* concat  (xs, ys) = "(%s, %s)" xs ys *)
+(* concat  (xs, ys) = "(%s,%s)" xs ys *)
 iso rec concat' = case
 | ([], ys)      <-> (ys, 0)
 | (x :: xs, ys) <->

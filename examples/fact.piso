@@ -6,12 +6,11 @@ type ('l, 'r) either = Left of 'l | Right of 'r
 ;;
 
 (*
-  56
-  -fact'------------> [Some 2; Some 2; Some 2; None; None; None; None; None; Some 7; Some 7]
-  -run_length-------> [(Some 2, 3); (None, 5); (Some 7, 2)]
-  -rev--------------> [(Some 7, 2); (None, 5); (Some 2, 3)]
-  -(decrement head)-> [(Some 7, 1); (None, 5); (Some 2, 3)]
-  -cleanup----------> [(7, 1); (2, 3)]
+  56 -fact'------------> [Some 2; Some 2; Some 2; None; None; None; None; None; Some 7; Some 7]
+     -run_length-------> [(Some 2, 3); (None, 5); (Some 7, 2)]
+     -rev--------------> [(Some 7, 2); (None, 5); (Some 2, 3)]
+     -(decrement head)-> [(Some 7, 1); (None, 5); (Some 2, 3)]
+     -cleanup----------> [(7, 1); (2, 3)]
 
   list produced by `fact'` always has one duplicated item at the end,
   which is why a decrement is needed after applying `rev`
