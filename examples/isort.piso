@@ -36,5 +36,5 @@ iso rec nat_lt = case
 | (S m, S n) <-> let (b, m, n) = nat_lt (m, n) in (b, S m, S n)
 in
 
-isort_aux nat_lt [10; 5; 5; 1; 2; 9; 7; 8; 0; 4; 6; 5; 6]
+isort nat_lt [10; 5; 5; 1; 2; 9; 7; 8; 0; 4; 6; 5; 6]
 
